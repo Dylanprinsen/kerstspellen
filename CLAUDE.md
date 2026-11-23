@@ -13,6 +13,7 @@ Website met spelletjes voor Dylans familie met kerst. Los project: heeft niets m
 - Familie van 9 mensen in **3 teams**, iedereen is gek op sport (alle sporten). Het moet leuk zijn voor **jong en oud**: niet alleen kennis, ook snelheid, gokken en lachen.
 - Eerst spelen op **één iPad** (om de beurt, teamleden wisselen elkaar af). Meerdere apparaten is later een optie: dan hoeven alleen `Teams` en `Stand` in `js/basis.js` naar een gedeelde opslag.
 - Eén **totaalstand** over alle spellen van de avond.
+- De avond moet **ruim een uur** duren (nu ± 70 min). Niet te snel klaar: bij nieuwe spellen of wijzigingen de duur bewaken (`minuten` per spel, totaal staat op de startpagina).
 - Volgersaantallen zijn een vaste momentopname (Instagram laat live ophalen niet toe); bij twijfel liever weglaten dan gokken.
 
 ## Verloop
@@ -24,12 +25,14 @@ Website met spelletjes voor Dylans familie met kerst. Los project: heeft niets m
 ## Spellen
 - **Hoger of lager** (`js/spellen/hoger-lager.js`): per team twee rondes: eerst Instagram-volgers (opgezocht 23 nov 2026), dan Olympische medailles, met foto's. Per vraag kiest een ander teamlid. Per ronde 1 punt per goed antwoord, +3 als het doel (standaard 7) gehaald wordt.
 - **F1-startlichten** (`js/spellen/startlichten.js`): per team; het hele team tegelijk, ieder een eigen vak. Standaard 3 starts; gemiddelde reactietijd telt (valse start/te laat = 1 s). Na alle teams: 5/3/1 punten.
-- **Wie ben ik?** (`js/spellen/wie-ben-ik.js`): iPad op het voorhoofd; sets Sporters (met foto) en Sporten uitbeelden; 1 punt per goed.
-- **Binnenkort:** Sportquiz met een niveau per speler (makkelijk/gemiddeld/expert), Schatten. Staan in `BINNENKORT` in `js/app.js`.
+- **Sportquiz** (`js/spellen/sportquiz.js`, vragen in `data/sportquiz.js`): elke speler kiest een niveau, makkelijk/gemiddeld/expert = 1/2/3 punten per goed. Standaard 3 vragen per speler, 30 seconden per vraag. Vragen worden op een avond niet herhaald.
+- **Wie ben ik?** (`js/spellen/wie-ben-ik.js`): iPad op het voorhoofd; per team twee rondes van 60 s (Sporters met foto, dan Sporten uitbeelden), elke ronde raadt iemand anders; 1 punt per goed.
+- **Schatten** (`js/spellen/schatten.js`, vragen in `data/schatten.js`): alle teams dezelfde 8 vragen, geheim invullen; na het laatste team een onthulling per vraag. Dichtstbij 2, tweede 1, binnen 1% +1 bonus.
+- Volgorde: Hoger of lager → F1 → Sportquiz → Wie ben ik? → Schatten → prijsuitreiking. `BINNENKORT` in `js/app.js` is nu leeg.
 - Foto's: `python3 tools/haal_fotos.py` haalt ze van Wikipedia/Commons (lokaal opgeslagen). Verkeerde foto: zet de juiste pagina of het Commons-bestand in `OVERRIDES` en draai met `--opnieuw "Naam"`.
 
 ## Techniek
 - Gewone HTML/CSS/JS, geen build-stap. Zie `README.md` voor de opbouw.
-- Nieuw spel: bestand in `js/spellen/` dat `registreerSpel({...})` aanroept (velden staan beschreven in `js/basis.js`), en een `<script>` in `index.html` op de plek in de volgorde. Het spel speelt één beurt via `speelBeurt(beurt)` en meldt `beurt.klaar({punten, tekst})`; de app regelt teamkeuze, stand en uitslag.
+- Nieuw spel: bestand in `js/spellen/` dat `registreerSpel({...})` aanroept (velden staan beschreven in `js/basis.js`), en een `<script>` in `index.html` op de plek in de volgorde. Het spel speelt één beurt via `speelBeurt(beurt)` en meldt `beurt.klaar({punten, tekst})`; de app regelt teamkeuze, stand en uitslag. Optioneel: `verdeelPunten` (punten pas na alle teams), `onthulling` (scherm vóór de uitslag), `minuten`, `film` (tekst in het filmpje).
 - Testen vóór elke push: `python3 tests/test_spel.py <map-voor-screenshots>` speelt alles door op iPad- en telefoonformaat (Playwright met de geïnstalleerde Chrome). Met een URL als tweede argument test je de live site.
 - Nog niet getest op een echte iPad: drie vingers tegelijk bij F1-startlichten, en de voorleesstem van het filmpje.

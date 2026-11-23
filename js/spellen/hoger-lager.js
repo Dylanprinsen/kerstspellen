@@ -253,6 +253,7 @@
     id: 'hoger-lager',
     naam: NAAM,
     emoji: '⬆️',
+    minuten: 12,
     kort: 'Wie heeft er meer Instagram-volgers of Olympische medailles? Raad meer of minder en bouw een reeks op.',
     film: 'Wie heeft er meer Instagram-volgers? En wie heeft meer Olympische medailles? Raad meer of minder, en maak een zo lang mogelijke reeks.',
     instellingen: {

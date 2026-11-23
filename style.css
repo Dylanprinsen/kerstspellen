@@ -285,8 +285,8 @@ img { display: block; }
 }
 
 /* 4. Programma */
-.sc-programma { gap: 3%; perspective: 900px; }
-.sc-spel { width: 30%; animation: omdraaien .8s ease-out both; animation-delay: calc(.4s + var(--i) * .6s); }
+.sc-programma { gap: 2%; perspective: 900px; }
+.sc-spel { width: min(30%, calc(94% / var(--n, 3) - 2%)); animation: omdraaien .8s ease-out both; animation-delay: calc(.4s + var(--i) * .6s); }
 @keyframes omdraaien { from { opacity: 0; transform: rotateY(-100deg) translateY(20px); } }
 .sc-spel-plaat { aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,.35); position: relative; }
 .sc-spel-nr {
@@ -778,3 +778,124 @@ img { display: block; }
 .volgende-ronde small { display: block; color: var(--rood); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; font-size: 14px; }
 .volgende-ronde b { font-size: 26px; }
 .volgende-ronde p { margin: 2px 0 0; font-size: 17px; opacity: .75; }
+
+/* ---------- Programma: duur ---------- */
+.tegel-chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.duur { font-size: 14px; font-weight: 500; color: #6b5a44; }
+
+/* ---------- Sportquiz ---------- */
+.niveau-wie { font-size: 26px !important; opacity: 1 !important; }
+.niveaus { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; max-width: 860px; margin-top: 8px; }
+.niveau {
+  font: inherit; border: 0; border-radius: 24px; padding: 22px 12px; cursor: pointer; color: var(--kaart-tekst); background: var(--kaart);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: var(--schaduw); border-top: 12px solid var(--n);
+  transition: transform .1s;
+}
+.niveau:active { transform: scale(.96); }
+.niveau-makkelijk { --n: #2eb872; }
+.niveau-gemiddeld { --n: #f4c542; }
+.niveau-expert { --n: #e5484d; }
+.niveau-emoji { font-size: 44px; }
+.niveau b { font-size: 26px; }
+.niveau-punten { font-size: 30px; font-weight: 700; color: var(--n); filter: brightness(.85); }
+.niveau small { opacity: .65; font-size: 15px; }
+@media (max-width: 640px) { .niveaus { grid-template-columns: 1fr; } .niveau { flex-direction: row; justify-content: center; gap: 12px; padding: 14px; } .niveau small { display: none; } }
+
+.quiz-voortgang { font-size: 17px; opacity: .8; }
+.quiz { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.quiz-teller { text-align: center; font-size: 18px; opacity: .8; }
+.quiz-tijd { height: 10px; border-radius: 5px; background: rgba(255,255,255,.15); overflow: hidden; }
+.quiz-tijd i { display: block; height: 100%; width: 100%; background: var(--goud); transition: width .1s linear; }
+.quiz-tijd i.bijna { background: var(--fout); }
+.quiz-vraag {
+  background: var(--kaart); color: var(--kaart-tekst); border-radius: 26px; padding: 26px 28px; text-align: center;
+  font-size: clamp(24px, 3.6vw, 34px); font-weight: 600; line-height: 1.25; box-shadow: var(--schaduw);
+}
+.quiz-antwoorden { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.quiz-antwoord {
+  font: inherit; color: #fff; background: rgba(255,255,255,.12); border: 3px solid rgba(255,255,255,.2); border-radius: 20px;
+  padding: 18px; font-size: clamp(20px, 2.8vw, 26px); font-weight: 600; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 14px; transition: background .2s, transform .1s;
+}
+.quiz-antwoord:active { transform: scale(.97); }
+.quiz-antwoord:disabled { cursor: default; opacity: .55; }
+.quiz-antwoord.juist { background: var(--goed); border-color: #fff; opacity: 1; }
+.quiz-antwoord.onjuist { background: var(--fout); opacity: 1; animation: schud .45s; }
+.quiz-letter {
+  width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--goud); color: #3a2a00;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.quiz-uitslag { display: flex; flex-direction: column; align-items: center; gap: 12px; min-height: 60px; }
+.quiz-melding { text-align: center; font-size: 24px; font-weight: 600; display: flex; flex-direction: column; gap: 4px; animation: plop .35s ease-out; }
+.quiz-melding small { font-size: 18px; font-weight: 400; opacity: .85; }
+@media (max-width: 560px) { .quiz-antwoorden { grid-template-columns: 1fr; } }
+
+/* ---------- Schatten ---------- */
+.schat { display: flex; flex-direction: column; align-items: center; gap: 14px; flex: 1; }
+.schat-vraag {
+  background: var(--kaart); color: var(--kaart-tekst); border-radius: 26px; padding: 22px 28px; text-align: center; width: 100%;
+  font-size: clamp(22px, 3.4vw, 32px); font-weight: 600; line-height: 1.25; box-shadow: var(--schaduw);
+}
+.schat-scherm {
+  background: #0a2018; border: 3px solid rgba(244,197,66,.5); border-radius: 18px; padding: 10px 26px; min-width: 300px;
+  display: flex; align-items: baseline; justify-content: center; gap: 10px; font-variant-numeric: tabular-nums;
+}
+.schat-scherm span { font-size: 48px; font-weight: 700; color: var(--goud); }
+.schat-scherm span.leeg { opacity: .35; }
+.schat-scherm small { font-size: 22px; opacity: .8; }
+.toetsen { display: grid; grid-template-columns: repeat(3, 84px); gap: 10px; }
+.toets {
+  height: 64px; border: 0; border-radius: 16px; font: inherit; font-size: 30px; font-weight: 600; color: #fff;
+  background: rgba(255,255,255,.14); cursor: pointer;
+}
+.toets:active { background: rgba(255,255,255,.3); }
+.schat .knoppen { margin-top: 6px; }
+
+.onthul { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.onthul-teams { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: 100%; max-width: 860px; }
+.onthul-team {
+  background: var(--glas); border-top: 8px solid var(--team); border-radius: 22px; padding: 14px 10px; text-align: center;
+  animation: plaatIn .6s cubic-bezier(.3,1.3,.5,1) both; animation-delay: calc(.3s + var(--i) * .7s); transition: background .4s, transform .4s;
+}
+.onthul-naam { font-size: 19px; font-weight: 600; opacity: .85; }
+.onthul-gok { font-size: clamp(24px, 3.6vw, 34px); font-weight: 700; font-variant-numeric: tabular-nums; }
+.onthul-punten { font-size: 30px; font-weight: 700; color: var(--goud); animation: plop .35s ease-out; }
+.onthul-team.winnaar { background: color-mix(in srgb, var(--team) 40%, transparent); transform: scale(1.05); }
+.onthul-antwoord {
+  background: var(--goud); color: #3a2a00; border-radius: 24px; padding: 14px 34px; text-align: center; animation: plop .4s ease-out;
+  box-shadow: 0 6px 0 var(--goud-donker);
+}
+.onthul-antwoord small { display: block; font-size: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.onthul-antwoord b { font-size: clamp(36px, 6vw, 56px); font-variant-numeric: tabular-nums; }
+.onthul-antwoord p { margin: 4px 0 0; font-size: 17px; max-width: 520px; }
+@media (max-width: 560px) { .onthul-teams { grid-template-columns: 1fr; } }
+
+/* ---------- Plaatjes Sportquiz en Schatten ---------- */
+.plaat-quiz { background: linear-gradient(135deg, #3b82f6, #1e3a8a); display: flex; align-items: center; justify-content: center; gap: 6%; }
+.quiz-mini { width: 52%; display: flex; flex-direction: column; gap: 8%; }
+.quiz-mini-vraag {
+  background: var(--kaart); color: var(--rood); border-radius: 12px; text-align: center; font-weight: 700;
+  font-size: clamp(26px, 5vw, 46px); line-height: 1.3; box-shadow: 0 6px 16px rgba(0,0,0,.3); animation: stuiter 2.4s ease-in-out infinite;
+}
+.quiz-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.quiz-mini-grid span {
+  background: rgba(255,255,255,.2); border-radius: 8px; padding: 4px 0; text-align: center; font-weight: 700; font-size: clamp(12px, 2vw, 18px);
+}
+.quiz-mini-grid span.juist { animation: juistKnipper 2.4s infinite; }
+@keyframes juistKnipper { 0%, 40% { background: rgba(255,255,255,.2); } 50%, 90% { background: var(--goed); } }
+.quiz-mini-niveaus { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: clamp(12px, 2vw, 18px); }
+.quiz-mini-niveaus span { background: rgba(0,0,0,.25); border-radius: 999px; padding: 4px 10px; }
+
+.plaat-schat { background: linear-gradient(135deg, #a855f7, #4c1d95); display: flex; align-items: center; justify-content: center; }
+.schat-mini-lat {
+  position: absolute; left: 10%; top: 12%; bottom: 12%; width: 12%; background: #f4c542; border-radius: 6px;
+  display: flex; flex-direction: column; justify-content: space-between; padding: 6px 0; box-shadow: 0 6px 16px rgba(0,0,0,.3);
+}
+.schat-mini-lat i { display: block; height: 2px; width: 45%; background: #3a2a00; }
+.schat-mini-lat i:nth-child(odd) { width: 70%; }
+.schat-mini-getal {
+  background: #0a2018; color: var(--goud); border-radius: 14px; padding: 6px 18px; font-weight: 700; font-size: clamp(24px, 4.6vw, 42px);
+  font-variant-numeric: tabular-nums; box-shadow: 0 6px 16px rgba(0,0,0,.35);
+}
+.schat-mini-getal span { display: inline-block; animation: puls 1.6s ease-in-out infinite; }
+.schat-mini-doel { position: absolute; right: 10%; bottom: 12%; font-size: clamp(30px, 6vw, 54px); animation: stuiter 2s ease-in-out infinite; }

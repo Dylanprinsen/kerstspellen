@@ -3,24 +3,36 @@
  * Eén speler houdt de iPad met het scherm naar voren op het voorhoofd en ziet zelf
  * niet wat er staat. Het team geeft hints of beeldt uit.
  * Rechts tikken = goed (1 punt), links tikken = overslaan.
+ * Standaard twee rondes per team: eerst sporters raden, dan sporten uitbeelden,
+ * elke ronde raadt iemand anders. Kaartjes komen op een avond niet dubbel voor.
  */
 (function () {
   const NAAM = 'Wie ben ik?';
   const SETS = window.KERST_DATA.wieBenIk;
   let potje = null;
+  const stapels = {}; // per set, gedeeld door alle teams: geen dubbele kaartjes
+
+  function rondes(inst) {
+    return inst.set === 'beide' ? [SETS.sporters, SETS.uitbeelden] : [SETS[inst.set] || SETS.sporters];
+  }
+
+  function uitlegRonde(set, lid, team) {
+    return `${lid !== team.naam ? `<b>${esc(lid)}</b> raadt` : 'Eén speler raadt'} en houdt de iPad op het voorhoofd.
+      De rest van het team ${set === SETS.uitbeelden ? '<b>beeldt uit</b> (niet praten!)' : 'geeft hints'}. Je hebt <b>${potje.duur} seconden</b>.`;
+  }
 
   function speelBeurt(beurt) {
-    const set = SETS[beurt.inst.set] || SETS.sporters;
-    const lid = Teams.volgendLid(beurt.teamIndex);
+    const lijst = rondes(beurt.inst);
     const team = Teams.lijst()[beurt.teamIndex];
-    potje = { beurt, set, duur: beurt.inst.duur, lid, stapel: schud(set.kaarten) };
+    potje = { beurt, rondes: lijst, ronde: 0, uitslagen: [], duur: beurt.inst.duur };
+    potje.set = lijst[0];
+    potje.lid = Teams.volgendLid(beurt.teamIndex);
     toonBeurt({
       spel: NAAM,
-      emoji: set.emoji,
+      emoji: potje.set.emoji,
       teamIndex: beurt.teamIndex,
-      lid,
-      uitleg: `${lid !== team.naam ? `<b>${esc(lid)}</b> raadt` : 'Eén speler raadt'} en houdt de iPad op het voorhoofd.
-        De rest van het team geeft hints${set === SETS.uitbeelden ? ' en beeldt uit' : ''}. Je hebt <b>${potje.duur} seconden</b>.`,
+      lid: potje.lid,
+      uitleg: `${lijst.length > 1 ? `<b>Ronde 1 van 2: ${esc(potje.set.titel)}</b><br>` : ''}${uitlegRonde(potje.set, potje.lid, team)}`,
       knop: 'Start het aftellen ⏱️',
       verder: () => aftellen(),
       terug: () => beurt.stop(),
@@ -40,8 +52,9 @@
   }
 
   function volgendeKaart() {
-    if (!potje.stapel.length) potje.stapel = schud(potje.set.kaarten);
-    return potje.stapel.pop();
+    const id = potje.set.titel;
+    if (!stapels[id] || !stapels[id].length) stapels[id] = schud(potje.set.kaarten);
+    return stapels[id].pop();
   }
 
   function kaartHtml(naam) {
@@ -60,7 +73,7 @@
     toonScherm(`
       <div class="wbi" id="wbi">
         <div class="wbi-balk"><div id="balk" style="width:100%"></div></div>
-        <div class="wbi-kop"><span><button class="terug" data-actie="stop">✕</button> ${teamLabel(team)}</span><span id="tijd" class="wbi-tijd">${over}</span><span id="score">✅ 0</span></div>
+        <div class="wbi-kop"><span><button class="terug" data-actie="stop">✕</button> ${teamLabel(team)}${potje.rondes.length > 1 ? ` <span class="ronde-label">${potje.set.emoji} ${potje.ronde + 1}/2</span>` : ''}</span><span id="tijd" class="wbi-tijd">${over}</span><span id="score">✅ 0</span></div>
         <div class="wbi-kaart" id="kaart">${kaartHtml(potje.kaart)}</div>
         <div class="wbi-zones">
           <button class="wbi-zone pas" data-zone="pas"><span>⏭️ Overslaan</span></button>
@@ -104,17 +117,54 @@
   function einde() {
     clearInterval(potje.klok);
     potje.klok = null;
-    const punten = potje.gehad.filter(g => g.goed).length;
+    // De kaart die nog op het scherm stond gaat terug op de stapel.
+    stapels[potje.set.titel].push(potje.kaart);
+    const r = { set: potje.set, lid: potje.lid, gehad: potje.gehad, laatste: potje.kaart, punten: potje.gehad.filter(g => g.goed).length };
+    potje.uitslagen.push(r);
+    if (potje.ronde + 1 < potje.rondes.length) toonTussenstand(r);
+    else klaar();
+  }
+
+  function lijstje(r) {
+    return `<ul class="resultaat-lijst">
+      ${r.gehad.map(g => `<li class="${g.goed ? 'goed' : ''}">${g.goed ? '✅' : '⏭️'} ${esc(g.kaart)}</li>`).join('')}
+      <li>⏰ ${esc(r.laatste)}</li>
+    </ul>`;
+  }
+
+  // Tussen de rondes: uitslag ronde 1 en wie er nu raadt.
+  function toonTussenstand(r) {
+    const team = Teams.lijst()[potje.beurt.teamIndex];
+    potje.ronde += 1;
+    potje.set = potje.rondes[potje.ronde];
+    potje.lid = Teams.volgendLid(potje.beurt.teamIndex);
+    toonScherm(`
+      <div class="kop"><span></span><div class="titel">${esc(NAAM)} · ronde 1 klaar</div><span></span></div>
+      <div class="midden schuif-in">
+        <h2>⏰ Tijd! ${r.punten} geraden</h2>
+        ${lijstje(r)}
+        <p class="punten-groot" style="color:${team.kleur}"><b>+${r.punten} ${r.punten === 1 ? 'punt' : 'punten'}</b> in deze ronde</p>
+        <div class="volgende-ronde">
+          <span class="volgende-emoji">${potje.set.emoji}</span>
+          <div><small>Ronde 2</small><b>${esc(potje.set.titel)}</b><p>${uitlegRonde(potje.set, potje.lid, team)}</p></div>
+        </div>
+        <div class="knoppen"><button class="knop goud groot" data-actie="verder">Start het aftellen ⏱️</button></div>
+      </div>
+    `, { verder: () => aftellen() });
+  }
+
+  function klaar() {
+    const u = potje.uitslagen;
+    const punten = u.reduce((som, r) => som + r.punten, 0);
     potje.beurt.klaar({
       punten,
-      tekst: `${punten} geraden`,
-      titel: `Tijd! ${punten} geraden`,
+      tekst: u.length > 1 ? u.map(r => `${r.set.emoji} ${r.punten}`).join(' · ') + ' geraden' : `${punten} geraden`,
+      titel: `${punten} geraden!`,
       emoji: '⏰',
-      details: `<ul class="resultaat-lijst">
-        ${potje.gehad.map(g => `<li class="${g.goed ? 'goed' : ''}">${g.goed ? '✅' : '⏭️'} ${esc(g.kaart)}</li>`).join('')}
-        <li>⏰ ${esc(potje.kaart)}</li>
-      </ul>`,
-      feest: punten >= 8,
+      details: u.length > 1
+        ? `<ul class="tijden-lijst">${u.map(r => `<li><span>${r.set.emoji} ${esc(r.set.titel)} (${esc(r.lid)})</span><b>${r.punten} geraden</b></li>`).join('')}</ul>${lijstje(u[u.length - 1])}`
+        : lijstje(u[0]),
+      feest: punten >= 10,
     });
   }
 
@@ -122,21 +172,25 @@
     id: 'wie-ben-ik',
     naam: NAAM,
     emoji: '🤔',
-    kort: 'iPad op je hoofd, je team geeft hints of beeldt uit. Hoeveel raad je in een minuut?',
-    film: 'Eén speler houdt de iPad op het voorhoofd en ziet niet wie erop staat. De rest van het team geeft hints. Hoeveel raden jullie er in één minuut?',
+    minuten: 10,
+    kort: 'iPad op je hoofd! Eerst sporters raden met hints, dan sporten raden die je team uitbeeldt.',
+    film: 'Eén speler houdt de iPad op het voorhoofd en ziet niet wat erop staat. Eerst raad je bekende sporters met hints van je team. Daarna beeldt je team sporten uit. Hoeveel raden jullie er?',
     instellingen: {
       set: {
         label: 'Welke kaartjes?',
-        standaard: 'sporters',
-        opties: Object.entries(SETS).map(([id, s]) => ({ waarde: id, label: s.titel, emoji: s.emoji, klein: `${s.uitleg} · ${s.kaarten.length} kaartjes` })),
+        standaard: 'beide',
+        opties: [{ waarde: 'beide', label: 'Allebei', emoji: '⭐🤸', klein: 'Ronde 1 sporters, ronde 2 uitbeelden' }]
+          .concat(Object.entries(SETS).map(([id, s]) => ({ waarde: id, label: s.titel, emoji: s.emoji, klein: `${s.uitleg} · ${s.kaarten.length} kaartjes` }))),
       },
-      duur: { label: 'Hoeveel seconden per beurt?', standaard: 60, min: 30, max: 180, stap: 15, eenheid: 'sec' },
+      duur: { label: 'Hoeveel seconden per ronde?', standaard: 60, min: 30, max: 180, stap: 15, eenheid: 'sec' },
     },
     stappen: inst => [
       { icoon: '🙆', tekst: 'Eén speler houdt de iPad <b>op het voorhoofd</b>, met het scherm naar het team. Niet spieken!' },
-      { icoon: '🗣️', tekst: `Het team geeft hints${inst.set === 'uitbeelden' ? ' en beeldt uit' : ''}. De naam zelf zeggen mag niet.` },
+      inst.set === 'beide'
+        ? { icoon: '🗣️', tekst: 'Twee rondes, telkens raadt iemand anders. Ronde 1: <b>sporters</b>, het team geeft hints. Ronde 2: sporten, het team <b>beeldt uit</b>.' }
+        : { icoon: '🗣️', tekst: `Het team ${inst.set === 'uitbeelden' ? 'beeldt uit' : 'geeft hints'}. De naam zelf zeggen mag niet.` },
       { icoon: '👉', tekst: 'Geraden? Tik op de <b>rechterkant</b> van het scherm. Te moeilijk? Tik <b>links</b> om over te slaan.' },
-      { icoon: '⏱️', tekst: `Je hebt <b>${inst.duur} seconden</b>. Raad er zoveel mogelijk!` },
+      { icoon: '⏱️', tekst: `Je hebt <b>${inst.duur} seconden</b>${inst.set === 'beide' ? ' per ronde' : ''}. Raad er zoveel mogelijk!` },
     ],
     punten: () => '<b>1 punt</b> per geraden kaartje.',
     plaatje: () => `

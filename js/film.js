@@ -60,7 +60,7 @@ const Film = (() => {
       },
       {
         tekst: `We spelen ${TELWOORD[Spellen.length] || Spellen.length} spellen, altijd in dezelfde volgorde.`,
-        beeld: `<div class="sc-programma">${Spellen.map((s, i) => `
+        beeld: `<div class="sc-programma" style="--n:${Spellen.length}">${Spellen.map((s, i) => `
           <div class="sc-spel" style="--i:${i}">
             <div class="sc-spel-plaat">${s.plaatje()}<span class="sc-spel-nr">${i + 1}</span></div>
             <div class="sc-spel-naam">${esc(s.naam)}</div>

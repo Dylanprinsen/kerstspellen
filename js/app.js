@@ -9,10 +9,13 @@
 const EDITIE = 'Familie-editie 2026';
 
 // Spellen die later komen; ze staan alvast in het programma.
-const BINNENKORT = [
-  { emoji: '❓', naam: 'Sportquiz', kort: 'Vragen op jouw niveau: makkelijk, gemiddeld of expert.', plaatje: () => plaatjeEmoji('❓', ['⚽', '🎾', '🏀', '⛸️'], '#3b82f6', '#1e3a8a') },
-  { emoji: '📏', naam: 'Schatten', kort: 'Hoe lang, hoe hard, hoe ver? Wie zit het dichtst bij?', plaatje: () => plaatjeEmoji('📏', ['🏃', '⏱️', '🚴', '🏊'], '#a855f7', '#4c1d95') },
-];
+// Voorbeeld: { emoji: '🎯', naam: 'Naam', kort: 'Uitleg', plaatje: () => plaatjeEmoji('🎯', ['⚽', '🎾', '🏀', '⛸️'], '#3b82f6', '#1e3a8a') }
+const BINNENKORT = [];
+
+// Geschatte duur van de avond in minuten: spellen + filmpje, uitleg en tussenstanden.
+function avondMinuten() {
+  return Spellen.reduce((som, s) => som + (s.minuten || 10), 0) + 3 + Spellen.length * 2;
+}
 
 function plaatjeEmoji(groot, klein, kleur1, kleur2) {
   return `<div class="plaat plaat-emoji" style="--k1:${kleur1};--k2:${kleur2}">
@@ -55,7 +58,7 @@ function toonHome() {
       <div class="hero-boven">🎄 Kerst 2026 🎄</div>
       <h1 class="hero-titel">Kerstspellen</h1>
       <div class="lint"><span>${EDITIE}</span></div>
-      <p class="hero-onder">3 teams · 1 iPad · ${Spellen.length} spellen · 1 Kerstbeker 🏆</p>
+      <p class="hero-onder">3 teams · 1 iPad · ${Spellen.length} spellen · ± ${Math.round(avondMinuten() / 5) * 5} minuten · 1 Kerstbeker 🏆</p>
     </header>
 
     <section class="sectie">
@@ -132,7 +135,7 @@ function programmaTegel(s, i, nu) {
     <article class="programma-tegel ${klasse}">
       <div class="tegel-plaat">${s.plaatje()}<span class="tegel-nummer">${i + 1}</span></div>
       <div class="tegel-tekst">
-        <span class="status">${status}</span>
+        <div class="tegel-chips"><span class="status">${status}</span><span class="duur">⏱️ ± ${s.minuten || 10} min</span></div>
         <h3>${esc(s.naam)}</h3>
         <p>${esc(s.kort)}</p>
       </div>
@@ -162,7 +165,7 @@ function toonSpelIntro(i) {
     <div class="intro schuif-in">
       <div class="intro-plaat">${s.plaatje()}</div>
       <div class="intro-titel">
-        <div class="intro-label">Spel ${i + 1}</div>
+        <div class="intro-label">Spel ${i + 1} · ± ${s.minuten || 10} minuten</div>
         <h1>${esc(s.naam)}</h1>
         <p>${esc(s.kort)}</p>
       </div>
@@ -262,11 +265,17 @@ function toonBeurtKlaar(i, teamIndex, res) {
         : `<p class="punten-groot" style="color:${team.kleur}"><b>+${res.punten} ${res.punten === 1 ? 'punt' : 'punten'}</b> voor ${esc(team.naam)}</p>`}
       <div class="knoppen">
         ${laatste
-          ? '<button class="knop goud groot" data-actie="verder">Bekijk de uitslag 🏆</button>'
+          ? `<button class="knop goud groot" data-actie="verder">${s.onthulling ? '🎬 Naar de onthulling' : 'Bekijk de uitslag 🏆'}</button>`
           : '<button class="knop goud groot" data-actie="verder">📱 Geef de iPad door ▶️</button>'}
       </div>
     </div>
-  `, { verder: () => (laatste ? toonSpelUitslag(i) : toonTeamKeuze(i)) });
+  `, {
+    verder: () => {
+      if (!laatste) toonTeamKeuze(i);
+      else if (s.onthulling) s.onthulling(() => toonSpelUitslag(i));
+      else toonSpelUitslag(i);
+    },
+  });
   if (res.feest) confetti();
 }
 

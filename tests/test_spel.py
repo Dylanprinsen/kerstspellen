@@ -16,6 +16,12 @@ KIES = """(goed) => {
   const juist = r > l ? 'hoger' : 'lager';
   return goed ? juist : (juist === 'hoger' ? 'lager' : 'hoger'); }"""
 STAND = "JSON.stringify([0,1,2].map(i => Stand.totaal(i)))"
+QUIZ = """(goed) => {
+  const v = document.querySelector('.quiz-vraag').textContent;
+  const q = Object.values(KERST_DATA.sportquiz).flatMap(n => n.vragen).find(q => q.v === v);
+  const ops = [...document.querySelectorAll('.quiz-antwoord span:last-child')].map(e => e.textContent);
+  const i = ops.indexOf(q.a[0]);
+  return goed ? i : (i + 1) % 4; }"""
 
 
 def klik(pg, sel, wacht=250):
@@ -68,17 +74,53 @@ def f1(pg, team, tikken):
         pg.wait_for_timeout(300)
 
 
-def wie_ben_ik(pg, team, zones, foto=False):
+def wie_ben_ik(pg, team, rondes, foto=False):
+    """rondes: per ronde een lijst tikken ('goed'/'pas'). Elke ronde duurt 30 seconden."""
     klik(pg, f"[data-actie=kies][data-team='{team}']")
     klik(pg, "[data-actie=verder]")
-    pg.wait_for_timeout(3300)
-    for z in zones:
-        pg.dispatch_event(f'[data-zone="{z}"]', 'pointerdown')
-        pg.wait_for_timeout(250)
-    if foto:
-        schiet(pg, "12_wbi_spel")
-    pg.wait_for_selector("[data-actie=verder]", timeout=40000)
-    pg.wait_for_timeout(300)
+    for r, zones in enumerate(rondes):
+        pg.wait_for_timeout(3300)
+        for z in zones:
+            pg.dispatch_event(f'[data-zone="{z}"]', 'pointerdown')
+            pg.wait_for_timeout(250)
+        if foto and r == 0:
+            schiet(pg, "15_wbi_spel")
+        if foto and r == 1:
+            schiet(pg, "15_wbi_uitbeelden")
+        pg.wait_for_selector("[data-actie=verder]", timeout=40000)
+        pg.wait_for_timeout(300)
+        if r < len(rondes) - 1:
+            if foto:
+                schiet(pg, "15_wbi_tussen")
+            klik(pg, "[data-actie=verder]")
+
+
+def quiz(pg, team, plan, foto=False):
+    """plan: per speler (niveau, [goed?, goed?, ...])."""
+    klik(pg, f"[data-actie=kies][data-team='{team}']")
+    klik(pg, "[data-actie=verder]")
+    for s, (niveau, antwoorden) in enumerate(plan):
+        if foto and s == 0:
+            schiet(pg, "13_quiz_niveau")
+        klik(pg, f"[data-actie=niveau][data-id={niveau}]")
+        for k, goed in enumerate(antwoorden):
+            if foto and s == 0 and k == 0:
+                schiet(pg, "13_quiz_vraag")
+            klik(pg, f"[data-actie=antwoord][data-i='{pg.evaluate(QUIZ, goed)}']", 400)
+            if foto and s == 0 and k < 2:
+                schiet(pg, f"13_quiz_antwoord_{k}")
+            klik(pg, "#quiz-verder")
+
+
+def schatten(pg, team, getallen, foto=False):
+    klik(pg, f"[data-actie=kies][data-team='{team}']")
+    klik(pg, "[data-actie=verder]")
+    for k, g in enumerate(getallen):
+        for t in g:
+            pg.click(f"[data-toets='{t}']")
+        if foto and k == 0:
+            schiet(pg, "17_schat_vraag")
+        klik(pg, "#schat-verder")
 
 
 with sync_playwright() as p:
@@ -90,7 +132,9 @@ with sync_playwright() as p:
     pg.evaluate("""localStorage.clear();
       localStorage.setItem('kerst.film.geluid', 'false');
       localStorage.setItem('kerst.inst.startlichten', JSON.stringify({starts: 2}));
-      localStorage.setItem('kerst.inst.wie-ben-ik', JSON.stringify({duur: 30}));""")
+      localStorage.setItem('kerst.inst.wie-ben-ik', JSON.stringify({duur: 30}));
+      localStorage.setItem('kerst.inst.sportquiz', JSON.stringify({vragen: 2}));
+      localStorage.setItem('kerst.inst.schatten', JSON.stringify({aantal: 4}));""")
     pg.reload(); pg.wait_for_timeout(600)
     schiet(pg, "01_home")
     schiet(pg, "01_home_heel", heel=True)
@@ -131,20 +175,48 @@ with sync_playwright() as p:
     f1(pg, 1, [[(0, 180), (1, 190), (2, 200)], [(0, 180), (1, 190), (2, 200)]]); klik(pg, "[data-actie=verder]")
     schiet(pg, "11_uitslag_f1", heel=True)
     print("na F1:", pg.evaluate(STAND))
-    # Spel 3: Wie ben ik? (30 seconden)
-    klik(pg, "[data-actie=verder]"); schiet(pg, "11_intro_wbi")
+    # Spel 3: Sportquiz (2 vragen per speler)
+    klik(pg, "[data-actie=verder]"); schiet(pg, "12_intro_quiz")
     klik(pg, "[data-actie=verder]")
-    wie_ben_ik(pg, 2, ["goed", "goed", "pas", "goed"], foto=True)
-    schiet(pg, "13_wbi_klaar"); klik(pg, "[data-actie=verder]")
-    wie_ben_ik(pg, 0, ["goed"]); klik(pg, "[data-actie=verder]")
-    wie_ben_ik(pg, 1, ["pas", "goed", "goed"]); klik(pg, "[data-actie=verder]")
-    schiet(pg, "14_uitslag_wbi", heel=True)
+    quiz(pg, 0, [("makkelijk", [True, True]), ("gemiddeld", [True, False]), ("expert", [False, False])], foto=True)
+    schiet(pg, "13_quiz_klaar"); klik(pg, "[data-actie=verder]")
+    quiz(pg, 1, [("expert", [True, True])] * 3); klik(pg, "[data-actie=verder]")
+    quiz(pg, 2, [("makkelijk", [False, False])] * 3); klik(pg, "[data-actie=verder]")
+    schiet(pg, "13_uitslag_quiz", heel=True)
+    print("na quiz:", pg.evaluate(STAND))
+    # Spel 4: Wie ben ik? (2 rondes van 30 seconden)
+    klik(pg, "[data-actie=verder]"); schiet(pg, "14_intro_wbi")
+    klik(pg, "[data-actie=verder]")
+    wie_ben_ik(pg, 2, [["goed", "goed", "pas", "goed"], ["goed"]], foto=True)
+    schiet(pg, "16_wbi_klaar"); klik(pg, "[data-actie=verder]")
+    wie_ben_ik(pg, 0, [["goed"], []]); klik(pg, "[data-actie=verder]")
+    wie_ben_ik(pg, 1, [["pas", "goed", "goed"], ["goed", "goed"]]); klik(pg, "[data-actie=verder]")
+    schiet(pg, "16_uitslag_wbi", heel=True)
     print("na WBI:", pg.evaluate(STAND))
-    klik(pg, "[data-actie=finale]", 1500); schiet(pg, "15_finale")
-    klik(pg, "[data-actie=stand]"); schiet(pg, "16_stand")
+    # Spel 5: Schatten (4 vragen) + onthulling
+    klik(pg, "[data-actie=verder]"); schiet(pg, "17_intro_schat")
+    klik(pg, "[data-actie=verder]")
+    schatten(pg, 0, ["300", "12", "1950", "7"], foto=True)
+    goed = pg.evaluate("Opslag.lees('schatten.set').map(i => String(KERST_DATA.schatten[i].antwoord).replace('.', ','))")
+    schiet(pg, "17_schat_klaar"); klik(pg, "[data-actie=verder]")
+    schatten(pg, 1, goed); klik(pg, "[data-actie=verder]")
+    schatten(pg, 2, ["1", "1", "1", "1"])
+    klik(pg, "[data-actie=verder]")  # naar de onthulling
+    for k in range(4):
+        pg.wait_for_timeout(2400)
+        if k == 0:
+            schiet(pg, "18_onthul_gok")
+        klik(pg, "[data-actie=toon]", 2000)
+        if k == 0:
+            schiet(pg, "18_onthul_antwoord")
+        klik(pg, "#onthul-knoppen button")
+    schiet(pg, "19_uitslag_schat", heel=True)
+    print("na schatten:", pg.evaluate(STAND))
+    klik(pg, "[data-actie=finale]", 1500); schiet(pg, "20_finale")
+    klik(pg, "[data-actie=stand]"); schiet(pg, "21_stand")
     klik(pg, "[data-actie=terug]"); klik(pg, "[data-actie=home]", 600)
-    schiet(pg, "17_home_na_afloop", heel=True)
-    klik(pg, "[data-actie=instellingen]"); schiet(pg, "18_instellingen", heel=True)
+    schiet(pg, "22_home_na_afloop", heel=True)
+    klik(pg, "[data-actie=instellingen]"); schiet(pg, "23_instellingen", heel=True)
     print("uitslagen:", json.dumps(pg.evaluate("Stand.alles()"))[:400])
 
     # Telefoon
