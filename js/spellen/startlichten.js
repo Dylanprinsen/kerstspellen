@@ -1,80 +1,71 @@
 /*
- * F1-startlichten
- * Eén speler per team, iedereen een eigen vak op dezelfde iPad. Vijf rode lampen
+ * F1-startlichten (per team)
+ * Het hele team speelt tegelijk, iedereen een eigen vak op de iPad. Vijf rode lampen
  * gaan aan en daarna tegelijk uit: tik dan zo snel mogelijk op je eigen vak.
- * Snelste 3 punten, tweede 2, derde 1. Te vroeg tikken = valse start = 0 punten.
+ * Elk team doet een paar starts; de gemiddelde reactietijd van het team telt.
+ * Te vroeg (valse start) of te laat telt als 1 seconde.
+ * Als alle teams geweest zijn: snelste team 5 punten, tweede 3, derde 1.
  */
 (function () {
-  const SPEL_ID = 'startlichten';
   const NAAM = 'F1-startlichten';
+  const STRAF = 1000;
+  const PUNTEN = [5, 3, 1];
   let race = null;
 
   function tijdTekst(ms) {
     return (ms / 1000).toFixed(3).replace('.', ',') + ' s';
   }
 
-  function toonUitleg() {
-    const record = Opslag.lees('startlichten.record', null);
-    toonScherm(`
-      ${kop(NAAM)}
-      <div class="midden schuif-in">
-        <div class="groot-emoji">🏎️</div>
-        <h2>Wie reageert het snelst?</h2>
-        <p>Uit elk team speelt één persoon. Iedereen krijgt een eigen vak op de iPad.</p>
-        <p>Vijf rode lampen gaan aan. Gaan ze <b>uit</b>? Tik dan zo snel mogelijk op je vak!</p>
-        <p>Snelste <b>3 punten</b>, tweede <b>2</b>, derde <b>1</b>. Te vroeg = valse start = 0.</p>
-        ${record ? `<p style="font-size:17px">🏁 Record: <b>${tijdTekst(record.tijd)}</b> door ${esc(record.naam)}</p>` : ''}
-        <div class="knoppen"><button class="knop goud" data-actie="start">Naar de startgrid ▶️</button></div>
-      </div>
-    `, { menu: () => toonMenu(), start: () => nieuweRace() });
-  }
-
-  function nieuweRace() {
-    const teams = Teams.lijst();
+  function speelBeurt(beurt) {
+    const team = Teams.lijst()[beurt.teamIndex];
+    const namen = team.leden.length ? team.leden : [team.naam];
     race = {
-      coureurs: teams.map((t, i) => ({ team: t, lid: Teams.volgendLid(i), uitslag: null })),
-      fase: 'klaar',
+      beurt,
+      team,
+      coureurs: namen.map(naam => ({ naam, tijden: [] })),
+      starts: beurt.inst.starts,
+      start: 0,
       timers: [],
     };
-    toonScherm(`
-      ${kop(NAAM)}
-      <div class="midden schuif-in">
-        <div class="groot-emoji">🏁</div>
-        <h2>Aan de start</h2>
-        <div class="ronde-uitslag">
-          ${race.coureurs.map(c => `
-            <div class="ronde-team" style="--team:${c.team.kleur}">
-              <div class="ronde-naam">${esc(c.team.naam)}</div>
-              ${c.lid !== c.team.naam ? `<div style="font-size:26px;font-weight:700">${esc(c.lid)}</div>` : ''}
-            </div>`).join('')}
-        </div>
-        <p>Leg de iPad plat neer. Iedereen een vinger boven het eigen vak.</p>
-        <div class="knoppen"><button class="knop goud" data-actie="go">Lampen aan! 🔴</button></div>
-      </div>
-    `, { menu: () => toonMenu(), go: () => toonRace() });
+    toonBeurt({
+      spel: NAAM,
+      emoji: '🏎️',
+      teamIndex: beurt.teamIndex,
+      uitleg: `Leg de iPad plat op tafel. ${namen.length > 1 ? `Iedereen uit het team (${namen.map(esc).join(', ')}) krijgt een eigen vak.` : 'Je krijgt een eigen vak.'}<br>
+        Jullie doen <b>${race.starts} ${race.starts === 1 ? 'start' : 'starts'}</b>. Lampen uit = tikken!`,
+      knop: 'Naar de startgrid 🏁',
+      verder: () => toonRace(),
+      terug: () => beurt.stop(),
+    });
   }
 
   function toonRace() {
+    race.fase = 'klaar';
+    race.uitslag = race.coureurs.map(() => null);
     toonScherm(`
       <div class="spelkop">
         <button class="terug" data-actie="stop">✕ Stop</button>
-        <div class="wie-speelt">${NAAM}</div>
+        <div class="wie-speelt">${teamLabel(race.team)} · start ${race.start + 1} van ${race.starts}</div>
         <span></span>
       </div>
       <div class="lichten">
         ${[0, 1, 2, 3, 4].map(i => `<div class="lamp-kolom" data-lamp="${i}"><i></i><i></i></div>`).join('')}
       </div>
-      <div class="race-status" id="status">Wacht op de lampen…</div>
-      <div class="vakken">
+      <div class="race-status" id="status">Vinger klaar boven je vak…</div>
+      <div class="vakken" style="--aantal:${race.coureurs.length}">
         ${race.coureurs.map((c, i) => `
-          <div class="vak" data-vak="${i}" style="--team:${c.team.kleur}">
-            ${c.lid !== c.team.naam ? `<div class="vak-team">${esc(c.team.naam)}</div>` : ''}
-            <div class="vak-naam">${esc(c.lid)}</div>
+          <div class="vak" data-vak="${i}" style="--team:${race.team.kleur}">
+            <div class="vak-naam">${esc(c.naam)}</div>
             <div class="vak-uitslag" id="uitslag-${i}">👆</div>
           </div>`).join('')}
       </div>
+      <div class="knoppen" id="na-race" hidden></div>
     `, {
-      stop: () => { stopTimers(); toonMenu(); },
+      stop: () => {
+        if (!confirm('Stoppen? Deze beurt telt dan niet en jullie mogen straks opnieuw.')) return;
+        stopTimers();
+        race.beurt.stop();
+      },
     });
 
     app.querySelectorAll('.vak').forEach(vak => {
@@ -86,10 +77,9 @@
       race.timers.push(setTimeout(() => {
         const lamp = app.querySelector(`[data-lamp="${i}"]`);
         if (lamp) lamp.classList.add('aan');
-      }, 1000 + i * 1000));
+      }, 1200 + i * 1000));
     }
-    const uit = 5000 + 400 + Math.random() * 2600;
-    race.timers.push(setTimeout(lichtenUit, uit));
+    race.timers.push(setTimeout(lichtenUit, 5200 + 400 + Math.random() * 2600));
   }
 
   function lichtenUit() {
@@ -99,29 +89,28 @@
     const status = document.getElementById('status');
     status.textContent = 'GO! GO! GO!';
     status.classList.add('go');
-    // Wie na 3 seconden nog niet getikt heeft, is te laat.
+    // Wie na 2 seconden nog niet getikt heeft, is te laat.
     race.timers.push(setTimeout(() => {
-      race.coureurs.forEach((c, i) => { if (!c.uitslag) { c.uitslag = { telaat: true }; toonVak(i); } });
+      race.uitslag.forEach((u, i) => { if (!u) { race.uitslag[i] = { telaat: true }; toonVak(i); } });
       klaar();
-    }, 3000));
+    }, 2000));
   }
 
   function tik(i) {
-    const c = race.coureurs[i];
-    if (!c || c.uitslag || race.fase === 'klaar' || race.fase === 'uitslag') return;
-    c.uitslag = race.fase === 'go' ? { tijd: performance.now() - race.t0 } : { vals: true };
+    if (race.uitslag[i] || (race.fase !== 'lampen' && race.fase !== 'go')) return;
+    race.uitslag[i] = race.fase === 'go' ? { tijd: performance.now() - race.t0 } : { vals: true };
     toonVak(i);
-    if (race.coureurs.every(x => x.uitslag)) klaar();
+    if (race.uitslag.every(Boolean)) klaar();
   }
 
   function toonVak(i) {
-    const c = race.coureurs[i];
+    const u = race.uitslag[i];
     const el = document.getElementById('uitslag-' + i);
     const vak = app.querySelector(`[data-vak="${i}"]`);
     if (!el) return;
-    if (c.uitslag.vals) { el.innerHTML = '🚫<br><small>Valse start!</small>'; vak.classList.add('vals'); }
-    else if (c.uitslag.telaat) { el.innerHTML = '😴<br><small>Te laat</small>'; vak.classList.add('vals'); }
-    else { el.textContent = tijdTekst(c.uitslag.tijd); vak.classList.add('getikt'); }
+    if (u.vals) { el.innerHTML = '🚫<br><small>Valse start!</small>'; vak.classList.add('vals'); }
+    else if (u.telaat) { el.innerHTML = '😴<br><small>Te laat</small>'; vak.classList.add('vals'); }
+    else { el.textContent = tijdTekst(u.tijd); vak.classList.add('getikt'); }
   }
 
   function stopTimers() {
@@ -134,60 +123,86 @@
     race.fase = 'uitslag';
     stopTimers();
 
-    const geldig = race.coureurs.filter(c => c.uitslag.tijd !== undefined).sort((a, b) => a.uitslag.tijd - b.uitslag.tijd);
-    const n = race.coureurs.length;
-    geldig.forEach((c, plek) => { c.plek = plek; c.punten = n - plek; });
-    race.coureurs.forEach((c, i) => {
-      c.punten = c.punten || 0;
-      Stand.geef(i, SPEL_ID, c.punten);
+    race.uitslag.forEach((u, i) => {
+      race.coureurs[i].tijden.push(u.tijd !== undefined ? u.tijd : STRAF);
+      if (u.tijd !== undefined) {
+        const record = Opslag.lees('startlichten.record', null);
+        if (!record || u.tijd < record.tijd) {
+          Opslag.schrijf('startlichten.record', { tijd: u.tijd, naam: race.coureurs[i].naam });
+          race.nieuwRecord = { tijd: u.tijd, naam: race.coureurs[i].naam };
+        }
+      }
     });
 
-    let nieuwRecord = false;
-    const snelste = geldig[0];
-    const record = Opslag.lees('startlichten.record', null);
-    if (snelste && (!record || snelste.uitslag.tijd < record.tijd)) {
-      Opslag.schrijf('startlichten.record', { tijd: snelste.uitslag.tijd, naam: snelste.lid });
-      nieuwRecord = !!record;
-    }
+    const status = document.getElementById('status');
+    status.classList.remove('go');
+    const deze = race.uitslag.map(u => (u.tijd !== undefined ? u.tijd : STRAF));
+    status.textContent = `Start ${race.start + 1}: gemiddeld ${tijdTekst(gemiddelde(deze))}`;
 
-    setTimeout(() => toonUitslag(nieuwRecord), 900);
+    race.start += 1;
+    const na = document.getElementById('na-race');
+    na.hidden = false;
+    na.innerHTML = race.start < race.starts
+      ? `<button class="knop goud groot" data-knop="nog">Volgende start (${race.start + 1} van ${race.starts}) 🔴</button>`
+      : '<button class="knop goud groot" data-knop="klaar">Bekijk jullie tijd 🏁</button>';
+    // Even wachten, zodat niemand per ongeluk meteen doortikt.
+    const knop = na.querySelector('button');
+    knop.disabled = true;
+    setTimeout(() => { knop.disabled = false; }, 900);
+    knop.addEventListener('click', () => (race.start < race.starts ? toonRace() : einde()));
   }
 
-  function toonUitslag(nieuwRecord) {
-    const medaille = p => ['🥇', '🥈', '🥉'][p] || '';
-    const winnaar = race.coureurs.find(c => c.plek === 0);
-    toonScherm(`
-      ${kop(NAAM)}
-      <div class="midden schuif-in">
-        <div class="groot-emoji">${winnaar ? '🏆' : '🙈'}</div>
-        <h2>${winnaar ? esc(winnaar.lid) + ' wint!' : 'Iedereen valse start!'}</h2>
-        ${nieuwRecord ? `<p>🎉 Nieuw record: <b>${tijdTekst(winnaar.uitslag.tijd)}</b></p>` : ''}
-        <div class="ronde-uitslag">
-          ${race.coureurs.map(c => `
-            <div class="ronde-team" style="--team:${c.team.kleur}">
-              <div class="ronde-naam">${esc(c.team.naam)}${c.lid !== c.team.naam ? ' · ' + esc(c.lid) : ''}</div>
-              <div style="font-size:22px">${c.uitslag.tijd !== undefined ? medaille(c.plek) + ' ' + tijdTekst(c.uitslag.tijd) : c.uitslag.vals ? '🚫 Valse start' : '😴 Te laat'}</div>
-              <div class="ronde-punten">+${c.punten}</div>
-            </div>`).join('')}
-        </div>
-        <div class="knoppen">
-          <button class="knop goud" data-actie="opnieuw">Volgende race 🏁</button>
-          <button class="knop licht" data-actie="stand">🏆 Stand</button>
-        </div>
-      </div>
-    `, {
-      menu: () => toonMenu(),
-      opnieuw: () => nieuweRace(),
-      stand: () => toonStand(toonMenu),
+  function gemiddelde(lijst) {
+    return lijst.reduce((a, b) => a + b, 0) / lijst.length;
+  }
+
+  function einde() {
+    const alle = race.coureurs.flatMap(c => c.tijden);
+    const gem = gemiddelde(alle);
+    const snelste = race.coureurs
+      .map(c => ({ naam: c.naam, beste: Math.min(...c.tijden) }))
+      .sort((a, b) => a.beste - b.beste);
+    race.beurt.klaar({
+      score: gem,
+      tekst: tijdTekst(gem) + ' gemiddeld',
+      titel: `Gemiddeld ${tijdTekst(gem)}`,
+      emoji: '🏁',
+      details: `
+        <ul class="tijden-lijst">
+          ${snelste.map(c => `<li><span>${esc(c.naam)}</span><b>${c.beste >= STRAF ? 'geen geldige tijd' : 'beste ' + tijdTekst(c.beste)}</b></li>`).join('')}
+        </ul>
+        ${race.nieuwRecord ? `<p>🎉 Nieuw record van de avond: <b>${esc(race.nieuwRecord.naam)}</b> met ${tijdTekst(race.nieuwRecord.tijd)}</p>` : ''}`,
+      feest: !!race.nieuwRecord,
     });
-    if (winnaar) confetti();
   }
 
   registreerSpel({
-    id: SPEL_ID,
+    id: 'startlichten',
     naam: NAAM,
     emoji: '🏎️',
-    tekst: 'Lampen uit, tikken! Drie spelers tegelijk op één iPad. Wie reageert het snelst?',
-    start: toonUitleg,
+    kort: 'Lampen uit, tikken! Het hele team tegelijk. Welk team reageert het snelst?',
+    instellingen: {
+      starts: { label: 'Aantal starts per team', standaard: 3, min: 1, max: 5, stap: 1 },
+    },
+    stappen: inst => [
+      { icoon: '👥', tekst: 'Het hele team speelt tegelijk. Leg de iPad plat neer: iedereen krijgt een eigen vak.' },
+      { icoon: '🔴', tekst: 'Vijf rode lampen gaan één voor één aan…' },
+      { icoon: '👆', tekst: '…en gaan dan tegelijk <b>uit</b>. Tik dan zo snel als je kunt op je eigen vak!' },
+      { icoon: '🚫', tekst: `Te vroeg getikt? Valse start! Dat telt als 1 seconde. Elk team doet <b>${inst.starts}</b> ${inst.starts === 1 ? 'start' : 'starts'}.` },
+    ],
+    punten: () => `De gemiddelde reactietijd van het team telt. Snelste team <b>${PUNTEN[0]} punten</b>, tweede <b>${PUNTEN[1]}</b>, derde <b>${PUNTEN[2]}</b>.`,
+    plaatje: () => `
+      <div class="plaat plaat-f1">
+        <div class="f1-lichten">${[0, 1, 2, 3, 4].map(i => `<span style="--i:${i}"><i></i><i></i></span>`).join('')}</div>
+        <div class="f1-auto">🏎️</div>
+        <div class="f1-vlag"></div>
+      </div>`,
+    speelBeurt,
+    // Laagste gemiddelde tijd wint; gelijke tijd = gelijke punten.
+    verdeelPunten: resultaten => {
+      // Afgerond op hele milliseconden, zoals op het scherm staat.
+      const scores = resultaten.map(r => Math.round(r.score));
+      return scores.map(s => PUNTEN[scores.filter(t => t < s).length] || 0);
+    },
   });
 })();
