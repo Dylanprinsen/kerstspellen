@@ -41,7 +41,6 @@
   /* ---------- Instellingen ---------- */
 
   function toonInstellingen() {
-    const spelers = Spelers.lijst();
     toonScherm(`
       ${kop('Hoger of lager')}
       <div class="sectie-titel">Kies een categorie</div>
@@ -60,15 +59,8 @@
         <button data-actie="plus" aria-label="Meer">+</button>
       </div>
 
-      <div class="sectie-titel">Wie spelen er?</div>
-      <div class="balk">
-        <div class="spelers-mini">
-          ${spelers.length
-            ? spelers.map(s => `<span class="chip"><span class="bol" style="background:${s.kleur};margin-right:0"></span>${esc(s.naam)}</span>`).join('')
-            : '<span style="opacity:.75">Nog geen spelers: je speelt als "Speler"</span>'}
-        </div>
-        <button class="knop licht" style="font-size:18px;padding:12px 18px" data-actie="spelers">✏️ Spelers</button>
-      </div>
+      <div class="sectie-titel">Punten</div>
+      <div class="balk"><span>Elk team om de beurt. <b>1 punt</b> per goed antwoord, <b>+3 bonus</b> als je het doel haalt.</span></div>
 
       <div class="knoppen">
         <button class="knop goud breed" data-actie="start">▶️ Start</button>
@@ -82,7 +74,6 @@
       },
       min: () => wijzigDoel(-1),
       plus: () => wijzigDoel(1),
-      spelers: () => toonSpelers(toonInstellingen),
       start: () => startPotje(),
     });
   }
@@ -97,30 +88,21 @@
 
   function startPotje() {
     const cat = CATEGORIEEN.find(c => c.id === instellingen.categorie) || CATEGORIEEN[0];
-    potje = { cat, doel: instellingen.doel, spelers: Spelers.voorPotje(), beurt: 0 };
-    toonBeurt();
+    potje = { cat, doel: instellingen.doel, team: 0, puntenRonde: Teams.lijst().map(() => 0) };
+    toonBeurtHL();
   }
 
-  function speler() {
-    return potje.spelers[potje.beurt];
-  }
-
-  function toonBeurt() {
-    const s = speler();
-    const meerdere = potje.spelers.length > 1;
-    toonScherm(`
-      ${kop('Hoger of lager', 'instellingen')}
-      <div class="midden schuif-in">
-        <div class="groot-emoji">${potje.cat.data.emoji}</div>
-        ${meerdere ? '<p>Aan de beurt:</p>' : ''}
-        <h2 style="color:${s.kleur === '#c8102e' ? 'var(--goud)' : s.kleur}">${esc(s.naam)}</h2>
-        <p>Haal er <b>${potje.doel}</b> op rij goed om te winnen.</p>
-        ${meerdere ? '<p style="font-size:17px">Geef de iPad aan ' + esc(s.naam) + '.</p>' : ''}
-        <div class="knoppen"><button class="knop goud" data-actie="begin">Ik ben er klaar voor!</button></div>
-      </div>
-    `, {
-      instellingen: () => toonInstellingen(),
-      begin: () => startRonde(),
+  function toonBeurtHL() {
+    potje.lid = Teams.volgendLid(potje.team);
+    toonBeurt({
+      spel: 'Hoger of lager',
+      emoji: potje.cat.data.emoji,
+      teamIndex: potje.team,
+      lid: potje.lid,
+      uitleg: `Haal er <b>${potje.doel}</b> op rij goed. Het team mag meedenken!`,
+      knop: 'Ik ben er klaar voor!',
+      verder: () => startRonde(),
+      terug: () => toonInstellingen(),
     });
   }
 
@@ -175,11 +157,11 @@
   }
 
   function toonSpel() {
-    const s = speler();
+    const team = Teams.lijst()[potje.team];
     toonScherm(`
       <div class="spelkop">
         <button class="terug" data-actie="stop">✕ Stop</button>
-        <div class="wie-speelt"><span class="bol" style="background:${s.kleur}"></span>${esc(s.naam)} · ${potje.reeks}/${potje.doel}</div>
+        <div class="wie-speelt">${teamLabel(team, potje.lid)} · ${potje.reeks}/${potje.doel}</div>
         <div class="stippen" id="stippen">${stippen()}</div>
       </div>
       <div class="vraag">${potje.cat.vraag(potje.rechts, potje.links)}</div>
@@ -238,47 +220,52 @@
   /* ---------- Einde van een beurt ---------- */
 
   function toonEinde(gewonnen) {
-    const s = speler();
-    Scores.bewaar(SPEL_ID, s.naam, potje.reeks, gewonnen);
-    const meerdere = potje.spelers.length > 1;
-    const volgendeSpeler = potje.spelers[(potje.beurt + 1) % potje.spelers.length];
+    const teams = Teams.lijst();
+    const team = teams[potje.team];
+    const punten = potje.reeks + (gewonnen ? 3 : 0);
+    Stand.geef(potje.team, SPEL_ID, punten);
+    potje.puntenRonde[potje.team] += punten;
+    const laatste = potje.team === teams.length - 1;
 
     toonScherm(`
       ${kop('Hoger of lager', 'instellingen')}
       <div class="midden schuif-in">
         <div class="groot-emoji">${gewonnen ? '🏆' : '🎅'}</div>
-        <h2>${gewonnen ? esc(s.naam) + ' wint!' : esc(s.naam) + ': ' + potje.reeks + ' goed'}</h2>
+        <h2>${gewonnen ? 'Doel gehaald!' : potje.reeks + ' goed'}</h2>
         <p>${gewonnen
-          ? `${potje.doel} op rij goed, wat een kenner!`
-          : potje.reeks === 0 ? 'Oei, meteen mis. Volgende keer beter!' : `Je had er ${potje.reeks} van de ${potje.doel} op rij goed.`}</p>
+          ? `${potje.doel} op rij goed, wat een kenners!`
+          : potje.reeks === 0 ? 'Oei, meteen mis. Volgende keer beter!' : `${potje.reeks} van de ${potje.doel} op rij goed.`}</p>
+        <p style="font-size:30px;color:${team.kleur}"><b>+${punten} punten</b> voor ${esc(team.naam)}</p>
         <div class="knoppen">
-          ${meerdere
-            ? `<button class="knop goud" data-actie="volgende">Volgende: ${esc(volgendeSpeler.naam)} ▶️</button>`
-            : `<button class="knop goud" data-actie="volgende">Nog een keer 🔁</button>`}
-          <button class="knop licht" data-actie="scorebord">🏅 Scorebord</button>
+          ${laatste
+            ? `<button class="knop goud" data-actie="volgende">Bekijk de uitslag ▶️</button>`
+            : `<button class="knop goud" data-actie="volgende">Volgende: ${esc(teams[potje.team + 1].naam)} ▶️</button>`}
         </div>
       </div>
     `, {
       instellingen: () => toonInstellingen(),
       volgende: () => {
-        potje.beurt = (potje.beurt + 1) % potje.spelers.length;
-        toonBeurt();
+        if (!laatste) {
+          potje.team += 1;
+          toonBeurtHL();
+          return;
+        }
+        toonRondeUitslag({
+          spel: 'Hoger of lager',
+          puntenRonde: potje.puntenRonde,
+          opnieuw: () => startPotje(),
+          terug: () => toonMenu(),
+        });
       },
-      scorebord: () => toonScorebord(SPEL_ID, 'Hoger of lager', toonEindeTerug),
     });
     if (gewonnen) confetti();
-
-    function toonEindeTerug() {
-      potje.beurt = (potje.beurt + 1) % potje.spelers.length;
-      toonBeurt();
-    }
   }
 
   registreerSpel({
     id: SPEL_ID,
     naam: 'Hoger of lager',
     emoji: '⬆️⬇️',
-    tekst: 'Wie heeft meer Instagram-volgers of medailles? Haal er 7 op rij goed!',
+    tekst: 'Wie heeft meer Instagram-volgers of medailles? Haal er zoveel mogelijk op rij goed.',
     start: toonInstellingen,
   });
 })();

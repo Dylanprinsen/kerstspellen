@@ -2,7 +2,7 @@
  * Basis voor alle spellen: opslag, spelers, scores en schermen.
  *
  * Alles wordt nu op dit ene apparaat bewaard (localStorage).
- * Later, voor meerdere apparaten, hoeven alleen Spelers en Scores
+ * Later, voor meerdere apparaten, hoeven alleen Teams en Stand
  * een gedeelde opslag te krijgen; de spellen zelf blijven hetzelfde.
  */
 
@@ -22,51 +22,48 @@ const Opslag = {
   },
 };
 
-const KLEUREN = ['#c8102e', '#2eb872', '#f4c542', '#3b82f6', '#a855f7', '#f97316', '#ec4899', '#14b8a6', '#8b5a2b', '#64748b'];
+const STANDAARD_TEAMS = [
+  { naam: 'Team Rood', kleur: '#e5484d', leden: [], beurt: 0 },
+  { naam: 'Team Groen', kleur: '#2eb872', leden: [], beurt: 0 },
+  { naam: 'Team Goud', kleur: '#f4c542', leden: [], beurt: 0 },
+];
 
-const Spelers = {
+const Teams = {
   lijst() {
-    return Opslag.lees('spelers', []);
+    return Opslag.lees('teams', STANDAARD_TEAMS);
   },
-  toevoegen(naam) {
-    naam = naam.trim().slice(0, 20);
-    if (!naam) return;
-    const lijst = this.lijst();
-    if (lijst.some(s => s.naam.toLowerCase() === naam.toLowerCase())) return;
-    const gebruikt = lijst.map(s => s.kleur);
-    const kleur = KLEUREN.find(k => !gebruikt.includes(k)) || KLEUREN[lijst.length % KLEUREN.length];
-    lijst.push({ naam, kleur });
-    Opslag.schrijf('spelers', lijst);
+  bewaar(teams) {
+    Opslag.schrijf('teams', teams);
   },
-  verwijderen(naam) {
-    Opslag.schrijf('spelers', this.lijst().filter(s => s.naam !== naam));
-  },
-  // Spelers voor een potje; zonder ingevoerde spelers speel je als "Speler".
-  voorPotje() {
-    const lijst = this.lijst();
-    return lijst.length ? lijst : [{ naam: 'Speler', kleur: KLEUREN[0] }];
+  // Wie van dit team is nu aan de beurt? Schuift daarna door naar het volgende lid.
+  volgendLid(i) {
+    const teams = this.lijst();
+    const t = teams[i];
+    if (!t.leden.length) return t.naam;
+    const lid = t.leden[t.beurt % t.leden.length];
+    t.beurt = (t.beurt + 1) % t.leden.length;
+    this.bewaar(teams);
+    return lid;
   },
 };
 
-const Scores = {
+// Totaalstand van de avond: punten per spel per team (op volgorde van de teams).
+const Stand = {
   alles() {
-    return Opslag.lees('scores', {});
+    return Opslag.lees('stand', {});
   },
-  // Een gespeelde beurt bewaren: beste reeks en aantal keer gewonnen.
-  bewaar(spelId, naam, score, gewonnen) {
+  geef(teamIndex, spelId, punten) {
+    if (!punten) return;
     const alles = this.alles();
-    const spel = alles[spelId] || (alles[spelId] = {});
-    const s = spel[naam] || (spel[naam] = { beste: 0, gewonnen: 0, gespeeld: 0 });
-    s.beste = Math.max(s.beste, score);
-    s.gespeeld += 1;
-    if (gewonnen) s.gewonnen += 1;
-    Opslag.schrijf('scores', alles);
+    const rij = alles[spelId] || (alles[spelId] = []);
+    rij[teamIndex] = (rij[teamIndex] || 0) + punten;
+    Opslag.schrijf('stand', alles);
   },
-  voorSpel(spelId) {
-    return this.alles()[spelId] || {};
+  totaal(teamIndex) {
+    return Object.values(this.alles()).reduce((som, rij) => som + (rij[teamIndex] || 0), 0);
   },
   wis() {
-    Opslag.schrijf('scores', {});
+    Opslag.schrijf('stand', {});
   },
 };
 
@@ -161,4 +158,53 @@ function telOp(el, doel, formaat, duur = 900) {
 const Spellen = [];
 function registreerSpel(spel) {
   Spellen.push(spel);
+}
+
+/* ---------- Gedeelde schermen voor spellen met teams ---------- */
+
+function teamLabel(team, lid) {
+  return `<span class="team-label" style="--team:${team.kleur}"><span class="bol" style="background:${team.kleur}"></span>${esc(team.naam)}${lid && lid !== team.naam ? ' · ' + esc(lid) : ''}</span>`;
+}
+
+// "Aan de beurt"-scherm. opties: { spel, emoji, teamIndex, lid, uitleg, knop, verder, terug }
+function toonBeurt(o) {
+  const team = Teams.lijst()[o.teamIndex];
+  toonScherm(`
+    ${kop(o.spel, 'terug')}
+    <div class="midden schuif-in">
+      <div class="groot-emoji">${o.emoji}</div>
+      <p>Aan de beurt:</p>
+      <h2 style="color:${team.kleur}">${esc(team.naam)}</h2>
+      ${o.lid && o.lid !== team.naam ? `<p style="font-size:26px"><b>${esc(o.lid)}</b></p>` : ''}
+      <p>${o.uitleg}</p>
+      <div class="knoppen"><button class="knop goud" data-actie="verder">${o.knop || 'Klaar? Start!'}</button></div>
+    </div>
+  `, { terug: o.terug, verder: o.verder });
+}
+
+// Uitslag na een ronde (elk team één beurt). puntenRonde: punten per team deze ronde.
+function toonRondeUitslag({ spel, puntenRonde, opnieuw, terug }) {
+  const teams = Teams.lijst();
+  const max = Math.max(...puntenRonde);
+  const winnaars = teams.filter((t, i) => puntenRonde[i] === max && max > 0);
+  toonScherm(`
+    ${kop(spel, 'terug')}
+    <div class="midden schuif-in">
+      <div class="groot-emoji">${winnaars.length === 1 ? '🏆' : '🤝'}</div>
+      <h2>${winnaars.length === 1 ? esc(winnaars[0].naam) + ' wint de ronde!' : max > 0 ? 'Gelijkspel!' : 'Niemand scoorde'}</h2>
+      <div class="ronde-uitslag">
+        ${teams.map((t, i) => `
+          <div class="ronde-team" style="--team:${t.kleur}">
+            <div class="ronde-naam">${esc(t.naam)}</div>
+            <div class="ronde-punten">+${puntenRonde[i] || 0}</div>
+            <div class="ronde-totaal">totaal ${Stand.totaal(i)}</div>
+          </div>`).join('')}
+      </div>
+      <div class="knoppen">
+        <button class="knop goud" data-actie="opnieuw">Nog een ronde 🔁</button>
+        <button class="knop licht" data-actie="stand">🏆 Stand</button>
+      </div>
+    </div>
+  `, { terug, opnieuw, stand: () => toonStand(terug) });
+  if (winnaars.length === 1) confetti();
 }

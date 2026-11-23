@@ -234,3 +234,81 @@ h1, h2, h3 { margin: 0; font-weight: 700; line-height: 1.1; }
   .vlok, .confetti { display: none; }
   * { animation-duration: .01ms !important; }
 }
+
+/* ---------- Teams en stand ---------- */
+.team-label { display: inline-flex; align-items: center; font-weight: 600; }
+.team-label .bol { margin-right: 8px; }
+
+.stand-balk { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+.stand-team {
+  background: rgba(255,255,255,.1); border-radius: 18px; padding: 12px 14px; text-align: center;
+  border-top: 6px solid var(--team);
+}
+.stand-team .naam { font-size: 16px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stand-team .punten { font-size: 34px; font-weight: 700; }
+.stand-team .leden { font-size: 13px; opacity: .65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ronde-uitslag { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 640px; margin-top: 8px; }
+.ronde-team { background: rgba(255,255,255,.1); border-radius: 20px; padding: 14px 10px; border-top: 6px solid var(--team); }
+.ronde-naam { font-size: 17px; opacity: .85; }
+.ronde-punten { font-size: 40px; font-weight: 700; color: var(--goud); }
+.ronde-totaal { font-size: 15px; opacity: .7; }
+
+.teams-bewerk { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.team-kaart { background: rgba(255,255,255,.08); border-radius: 22px; padding: 16px; border-top: 8px solid var(--team); }
+.team-kaart .invoer { font-size: 20px; padding: 10px 14px; }
+.team-kaart .teamnaam { font-weight: 700; margin-bottom: 12px; width: 100%; }
+.team-kaart .spelerlijst li { font-size: 19px; padding: 8px 12px; }
+.team-kaart .knop { font-size: 18px; padding: 10px 16px; }
+
+/* ---------- F1-startlichten ---------- */
+.lichten {
+  display: flex; justify-content: center; gap: clamp(8px, 2vw, 18px);
+  background: #111; border-radius: 22px; padding: 16px; margin: 4px auto 0; width: fit-content;
+  box-shadow: var(--schaduw);
+}
+.lamp-kolom { display: flex; flex-direction: column; gap: 10px; background: #222; padding: 10px; border-radius: 14px; }
+.lamp-kolom i {
+  display: block; width: clamp(34px, 7vw, 64px); height: clamp(34px, 7vw, 64px); border-radius: 50%;
+  background: #3a0b10; transition: background .05s, box-shadow .05s;
+}
+.lamp-kolom.aan i { background: #ff1a2e; box-shadow: 0 0 24px #ff1a2e, 0 0 6px #fff inset; }
+.race-status { text-align: center; font-size: clamp(24px, 5vw, 40px); font-weight: 700; margin: 16px 0; min-height: 48px; }
+.race-status.go { color: var(--goed); }
+
+.vakken { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; min-height: 260px; }
+.vak {
+  touch-action: none; -webkit-touch-callout: none; cursor: pointer;
+  border-radius: 24px; border: 4px solid var(--team); background: rgba(255,255,255,.08);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  text-align: center; padding: 10px; transition: background .15s;
+}
+.vak-team { font-size: 16px; opacity: .8; }
+.vak-naam { font-size: clamp(20px, 3.5vw, 30px); font-weight: 700; }
+.vak-uitslag { font-size: clamp(26px, 5vw, 42px); font-weight: 700; font-variant-numeric: tabular-nums; min-height: 1.2em; }
+.vak-uitslag small { font-size: 18px; }
+.vak.getikt { background: color-mix(in srgb, var(--team) 35%, transparent); }
+.vak.vals { background: rgba(0,0,0,.35); border-style: dashed; }
+
+/* ---------- Wie ben ik? ---------- */
+.wbi { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; background: var(--groen); }
+.wbi-balk { height: 14px; background: rgba(255,255,255,.15); }
+.wbi-balk div { height: 100%; background: var(--goud); transition: width 1s linear; }
+.wbi-kop { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font-size: 22px; font-weight: 600; }
+.wbi-kaart {
+  flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 24px;
+  font-size: clamp(44px, 9vw, 120px); font-weight: 700; line-height: 1.05; pointer-events: none;
+}
+.wbi-zones { position: absolute; inset: 70px 0 0 0; display: grid; grid-template-columns: 1fr 1fr; }
+.wbi-zone {
+  touch-action: none; -webkit-touch-callout: none; border: 0; background: transparent; color: #fff; font: inherit;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 24px; font-size: 22px; opacity: .8; cursor: pointer;
+}
+.wbi-flits-goed { animation: flitsGoed .5s; }
+.wbi-flits-pas { animation: flitsPas .5s; }
+@keyframes flitsGoed { from { background: var(--goed); } }
+@keyframes flitsPas { from { background: #f97316; } }
+.aftel { font-size: clamp(120px, 30vw, 260px); font-weight: 700; }
+.resultaat-lijst { list-style: none; padding: 0; margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 760px; }
+.resultaat-lijst li { padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.12); font-size: 17px; }
+.resultaat-lijst li.goed { background: rgba(46,184,114,.35); }
