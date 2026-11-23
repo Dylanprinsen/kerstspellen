@@ -115,6 +115,38 @@ def quiz(pg, team, plan, foto=False):
             klik(pg, "#quiz-verder")
 
 
+MOMENT_JUIST = """() => {
+  const id = document.querySelector('.moment-kaart').dataset.id;
+  return [...document.querySelectorAll('[data-keuze]')].findIndex(b => b.dataset.keuze === id); }"""
+
+
+def moment(pg, team, plan, foto=False):
+    """plan per quote: 'direct' (3), 'hint' (2), 'keuze' (1), 'mis' (keuze fout, 0), 'fout' (weten maar fout, 0)."""
+    klik(pg, f"[data-actie=kies][data-team='{team}']")
+    klik(pg, "[data-actie=verder]")
+    for k, stap in enumerate(plan):
+        if foto and k == 0:
+            schiet(pg, "17_moment_quote")
+        if stap in ("direct", "fout"):
+            klik(pg, "[data-k=weten]")
+            if foto and k == 0:
+                schiet(pg, "17_moment_oordeel")
+            klik(pg, "[data-k=goed]" if stap == "direct" else "[data-k=fout]")
+        else:
+            klik(pg, "[data-k=hint]")
+            if stap == "hint":
+                klik(pg, "[data-k=weten]"); klik(pg, "[data-k=goed]")
+            else:
+                klik(pg, "[data-k=keuzes]")
+                if foto:
+                    schiet(pg, "17_moment_keuzes")
+                juist = pg.evaluate(MOMENT_JUIST)
+                klik(pg, f"[data-keuze]:nth-child({(juist if stap == 'keuze' else (juist + 1) % 4) + 1})")
+        if foto and k == 0:
+            schiet(pg, "17_moment_uitleg")
+        klik(pg, "[data-actie=verder]")
+
+
 def schatten(pg, team, getallen, foto=False):
     klik(pg, f"[data-actie=kies][data-team='{team}']")
     klik(pg, "[data-actie=verder]")
@@ -197,7 +229,16 @@ with sync_playwright() as p:
     wie_ben_ik(pg, 1, [["pas", "goed", "goed"], ["goed", "goed"]]); klik(pg, "[data-actie=verder]")
     schiet(pg, "16_uitslag_wbi", heel=True)
     print("na WBI:", pg.evaluate(STAND))
-    # Spel 5: Schatten (4 vragen) + onthulling
+    # Spel 5: Raad het moment (5 quotes). Verwacht: 3+2+1+0+0 = 6, 5x3 = 15, 0.
+    klik(pg, "[data-actie=verder]"); schiet(pg, "17_intro_moment")
+    klik(pg, "[data-actie=verder]")
+    moment(pg, 0, ["direct", "hint", "keuze", "mis", "fout"], foto=True)
+    schiet(pg, "17_moment_klaar"); klik(pg, "[data-actie=verder]")
+    moment(pg, 1, ["direct"] * 5); klik(pg, "[data-actie=verder]")
+    moment(pg, 2, ["mis"] * 5); klik(pg, "[data-actie=verder]")
+    schiet(pg, "17_uitslag_moment", heel=True)
+    print("na moment:", pg.evaluate(STAND))
+    # Spel 6: Schatten (4 vragen) + onthulling
     klik(pg, "[data-actie=verder]"); schiet(pg, "17_intro_schat")
     klik(pg, "[data-actie=verder]")
     schatten(pg, 0, ["300", "12", "1950", "7"], foto=True)

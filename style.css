@@ -893,3 +893,79 @@ img { display: block; }
   background: color-mix(in srgb, var(--n) 30%, transparent); border: 2px solid var(--n); color: #fff; vertical-align: 1px;
 }
 .niveau-rij .niveau-chip { font-size: 18px; padding: 6px 16px; margin: 0; }
+
+/* ---------- Testmodus ---------- */
+.testbalk {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+  background: repeating-linear-gradient(-45deg, #3b2a00, #3b2a00 12px, #4a3500 12px, #4a3500 24px);
+  border: 2px solid var(--goud); border-radius: 18px; padding: 10px 14px; font-size: 17px;
+}
+.testbalk > span:last-child { display: flex; gap: 8px; }
+.knop.klein { font-size: 16px; padding: 8px 14px; border-radius: 12px; box-shadow: none; }
+.test-badge {
+  position: fixed; left: 10px; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 20; pointer-events: none;
+  background: var(--goud); color: #3a2a00; font-weight: 700; font-size: 14px; padding: 4px 10px; border-radius: 999px; opacity: .85;
+}
+.programma-tegel.test-klik { cursor: pointer; transition: transform .1s; }
+.programma-tegel.test-klik:active { transform: scale(.97); }
+
+/* ---------- Raad het moment ---------- */
+.moment { display: flex; flex-direction: column; gap: 14px; flex: 1; align-items: center; }
+.moment-kaart {
+  position: relative; width: 100%; background: var(--kaart); color: var(--kaart-tekst); border-radius: 28px;
+  padding: 28px 32px 18px 110px; box-shadow: var(--schaduw);
+}
+.moment-mic {
+  position: absolute; left: 22px; top: 24px; width: 70px; height: 70px; border-radius: 50%; background: var(--rood);
+  display: flex; align-items: center; justify-content: center; font-size: 36px; animation: puls 1.4s ease-in-out infinite;
+}
+.moment-quote { margin: 0; font-size: clamp(24px, 3.4vw, 34px); font-weight: 600; line-height: 1.3; font-style: italic; }
+.moment-quote.klein { font-size: 19px; font-weight: 500; opacity: .85; }
+.piep { display: inline-block; background: var(--kaart-tekst); color: var(--kaart-tekst); border-radius: 6px; letter-spacing: -2px; font-style: normal; line-height: 1; padding: 2px 4px; }
+.ontpiept { color: var(--rood); font-style: normal; }
+.moment-vertaling { margin-top: 10px; font-size: 18px; opacity: .7; }
+.moment-bron { margin-top: 12px; font-size: 15px; opacity: .65; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.moment-nog { font: inherit; font-size: 16px; border: 0; background: #eee2cc; color: var(--kaart-tekst); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.moment-hint {
+  background: rgba(244,197,66,.18); border: 2px solid var(--goud); border-radius: 18px; padding: 12px 22px;
+  font-size: 24px; font-weight: 600; animation: plop .35s ease-out;
+}
+.moment-acties { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.moment-acties > p { margin: 0; font-size: 20px; opacity: .85; }
+.moment-acties .knoppen { margin-top: 10px; }
+.moment-acties .quiz-antwoorden { width: 100%; margin-top: 8px; }
+.moment-acties .quiz-antwoord { font-size: clamp(17px, 2.2vw, 21px); }
+.moment-oplossing { background: var(--goud); color: #3a2a00; border-radius: 20px; padding: 12px 26px; animation: plop .4s ease-out; box-shadow: 0 6px 0 var(--goud-donker); }
+.moment-oplossing small { display: block; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.moment-oplossing b { font-size: 26px; }
+.moment-uitleg { display: grid; grid-template-columns: minmax(0, 300px) 1fr; gap: 26px; align-items: center; background: var(--glas); border-radius: 28px; padding: 22px; }
+.moment-foto { width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 30%; border-radius: 22px; border: 5px solid #fff; box-shadow: var(--schaduw); }
+.moment-foto.leeg { display: flex; align-items: center; justify-content: center; font-size: 100px; background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.2); }
+.moment-tekst { display: flex; flex-direction: column; gap: 10px; }
+.moment-tekst h2 { font-size: clamp(26px, 3.6vw, 36px); }
+.moment-tekst p { margin: 0; font-size: 19px; line-height: 1.4; }
+.moment-tekst .moment-quote { background: var(--kaart); color: var(--kaart-tekst); border-radius: 16px; padding: 12px 16px; }
+.moment-tekst .moment-bron { opacity: .75; margin-top: 0; }
+.moment-punten { align-self: flex-start; font-size: 22px; font-weight: 700; background: rgba(229,72,77,.3); padding: 4px 14px; border-radius: 999px; }
+.moment-punten.goed { background: rgba(46,184,114,.4); }
+@media (max-width: 640px) {
+  .moment-kaart { padding: 90px 20px 16px; }
+  .moment-uitleg { grid-template-columns: 1fr; }
+  .moment-foto { max-width: 220px; margin: 0 auto; }
+}
+
+.plaat-moment { background: linear-gradient(135deg, #f97316, #9a3412); display: flex; align-items: center; justify-content: center; gap: 4%; }
+.moment-mini-mic { font-size: clamp(44px, 8vw, 76px); animation: wiebel 2s ease-in-out infinite; }
+.moment-mini-ballon {
+  position: relative; background: var(--kaart); color: var(--kaart-tekst); border-radius: 16px; padding: 10px 14px; max-width: 55%;
+  font-weight: 600; font-style: italic; font-size: clamp(13px, 2.2vw, 20px); line-height: 1.25; box-shadow: 0 6px 16px rgba(0,0,0,.3);
+}
+.moment-mini-ballon span { background: var(--kaart-tekst); color: var(--kaart-tekst); border-radius: 4px; font-style: normal; }
+.moment-mini-golven { position: absolute; left: 14%; top: 50%; }
+.moment-mini-golven i {
+  position: absolute; left: 0; top: 0; width: 60px; height: 60px; margin: -30px; border: 3px solid rgba(255,255,255,.6); border-radius: 50%;
+  animation: golf 2s ease-out infinite;
+}
+.moment-mini-golven i:nth-child(2) { animation-delay: .6s; }
+.moment-mini-golven i:nth-child(3) { animation-delay: 1.2s; }
+@keyframes golf { from { transform: scale(.6); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }

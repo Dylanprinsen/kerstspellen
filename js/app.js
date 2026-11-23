@@ -53,6 +53,11 @@ function toonHome() {
   else knop = `<button class="knop goud groot" data-actie="verder">▶️ Ga verder: ${esc(Spellen[nu].naam)}</button>`;
 
   toonScherm(`
+    ${Testmodus.aan ? `<div class="testbalk">
+      <span>🧪 <b>Testmodus</b>: tik op een spel om het te testen. Telt niet mee voor de echte avond.</span>
+      <span><button class="knop licht klein" data-actie="nieuweTest">↺ Opnieuw</button>
+      <button class="knop goud klein" data-actie="testUit">Stop testmodus</button></span>
+    </div>` : ''}
     <header class="hero">
       <div class="slinger" aria-hidden="true">${[...Array(18)].map((_, i) => `<i style="--i:${i}"></i>`).join('')}</div>
       <div class="hero-boven">🎄 Kerst 2026 🎄</div>
@@ -103,6 +108,7 @@ function toonHome() {
     <footer class="voet">
       <button class="link" data-actie="instellingen">⚙️ Instellingen spelleider</button>
       <button class="link" data-actie="nieuw">🔄 Nieuwe avond</button>
+      ${Testmodus.aan ? '' : '<button class="link" data-actie="testAan">🧪 Testmodus</button>'}
       <p>Tip: zet deze pagina op het beginscherm van de iPad via Delen → Zet op beginscherm.</p>
     </footer>
   `, {
@@ -113,6 +119,12 @@ function toonHome() {
       else toonSpelIntro(nu);
     },
     finale: () => toonFinale(),
+    testSpel: (e, el) => toonSpelIntro(+el.dataset.i),
+    testAan: () => {
+      if (confirm('Testmodus starten? Je kunt dan elk spel los proberen. De echte avond (teams en punten) blijft gewoon bewaard.')) Testmodus.start();
+    },
+    testUit: () => Testmodus.stop(),
+    nieuweTest: () => Testmodus.start(),
     teams: () => toonTeams(toonHome),
     stand: () => toonStand(toonHome),
     instellingen: () => toonInstellingen(),
@@ -131,8 +143,10 @@ function programmaTegel(s, i, nu) {
   let klasse = '';
   if (Stand.klaar(s.id)) { status = '✔ Gespeeld'; klasse = 'gespeeld'; }
   else if (i === nu) { status = Stand.begonnen(s.id) ? '▶ Nu bezig' : (i === 0 ? '▶ Eerste spel' : '▶ Volgende'); klasse = 'nu'; }
+  const knop = Testmodus.aan ? ` data-actie="testSpel" data-i="${i}" role="button"` : '';
+  if (Testmodus.aan) status = Stand.klaar(s.id) ? '✔ Getest · opnieuw ▶' : '🧪 Test dit spel ▶';
   return `
-    <article class="programma-tegel ${klasse}">
+    <article class="programma-tegel ${klasse}${Testmodus.aan ? ' test-klik' : ''}"${knop}>
       <div class="tegel-plaat">${s.plaatje()}<span class="tegel-nummer">${i + 1}</span></div>
       <div class="tegel-tekst">
         <div class="tegel-chips"><span class="status">${status}</span><span class="duur">⏱️ ± ${s.minuten || 10} min</span></div>
@@ -150,10 +164,15 @@ function introTekst(i, inst) {
   return `Spel ${i + 1}: ${zin(s.naam)} ${s.stappen(inst).map(st => st.tekst).join(' ')} Punten: ${s.punten(inst)}`;
 }
 
-// Alle teksten met een vaste opname (voor tools/maak_stem.py): filmpje + uitleg per spel met standaardinstellingen.
+// Alle teksten met een vaste opname (voor tools/maak_stem.py): filmpje, uitleg per spel met
+// standaardinstellingen en extra teksten van spellen (zoals de quotes bij Raad het moment).
 function alleVoorleesTeksten() {
   const standaard = s => Object.fromEntries(Object.entries(s.instellingen || {}).map(([k, d]) => [k, d.standaard]));
-  return [...Film.teksten(), ...Spellen.map((s, i) => introTekst(i, standaard(s)))].map(t => Spraak.schoon(t));
+  const lijst = [...Film.teksten(), ...Spellen.map((s, i) => introTekst(i, standaard(s)))].map(t => Spraak.schoon(t));
+  // Extra teksten van spellen, eventueel met een eigen stem: { tekst, stem, snelheid }.
+  const extra = Spellen.flatMap(s => (s.voorleesExtra ? s.voorleesExtra() : []))
+    .map(x => ({ ...x, tekst: Spraak.schoon(x.tekst) }));
+  return [...lijst, ...extra];
 }
 
 function toonSpelIntro(i) {
@@ -222,10 +241,18 @@ function toonTeamKeuze(i) {
             <div class="keuze-knop">Wij spelen ▶</div>
           </button>`).join('')}
       </div>
+      ${Testmodus.aan && over < teams.length ? '<div class="knoppen"><button class="knop licht" data-actie="overslaan">⏭️ Andere teams overslaan (test)</button></div>' : ''}
     </div>
   `, {
     uitleg: () => toonSpelIntro(i),
     kies: (e, el) => startBeurt(i, +el.dataset.team),
+    // Alleen in testmodus: de overige teams krijgen hetzelfde resultaat als het eerste team.
+    overslaan: () => {
+      const voorbeeld = r[Object.keys(r)[0]];
+      teams.forEach((t, n) => { if (!r[n]) Stand.zet(s.id, n, { ...voorbeeld, tekst: voorbeeld.tekst + ' (test)' }); });
+      if (s.onthulling) s.onthulling(() => toonSpelUitslag(i));
+      else toonSpelUitslag(i);
+    },
   });
 }
 

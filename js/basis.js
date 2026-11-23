@@ -6,10 +6,42 @@
  * een gedeelde opslag te krijgen; de spellen zelf blijven hetzelfde.
  */
 
+/*
+ * Testmodus: alles (teams, punten, instellingen) staat dan in een aparte opslag
+ * ("kerst.test."), zodat testen de echte avond niet raakt. Aan met ?test in het
+ * adres of via de startpagina; uit met ?echt of de knop in de testbalk.
+ */
+const Testmodus = {
+  aan: (() => {
+    try {
+      const url = new URLSearchParams(location.search);
+      if (url.has('test')) localStorage.setItem('kerst.testmodus', '1');
+      if (url.has('echt')) localStorage.removeItem('kerst.testmodus');
+      return localStorage.getItem('kerst.testmodus') === '1';
+    } catch (e) {
+      return false;
+    }
+  })(),
+  // Begin een nieuwe, lege test met één testspeler per team.
+  start() {
+    try {
+      Object.keys(localStorage).filter(k => k.startsWith('kerst.test.')).forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('kerst.test.teams', JSON.stringify(STANDAARD_TEAMS.map((t, i) => ({ ...t, leden: ['Tester ' + 'ABC'[i]] }))));
+      localStorage.setItem('kerst.testmodus', '1');
+    } catch (e) { /* geen opslag: dan werkt testen ook niet */ }
+    location.href = location.pathname;
+  },
+  stop() {
+    try { localStorage.removeItem('kerst.testmodus'); } catch (e) { /* niets */ }
+    location.href = location.pathname;
+  },
+};
+
 const Opslag = {
+  voor: Testmodus.aan ? 'kerst.test.' : 'kerst.',
   lees(sleutel, standaard) {
     try {
-      const v = localStorage.getItem('kerst.' + sleutel);
+      const v = localStorage.getItem(this.voor + sleutel);
       return v === null ? standaard : JSON.parse(v);
     } catch (e) {
       return standaard;
@@ -17,7 +49,7 @@ const Opslag = {
   },
   schrijf(sleutel, waarde) {
     try {
-      localStorage.setItem('kerst.' + sleutel, JSON.stringify(waarde));
+      localStorage.setItem(this.voor + sleutel, JSON.stringify(waarde));
     } catch (e) { /* privévenster: dan gewoon niet bewaren */ }
   },
 };
@@ -27,6 +59,13 @@ const STANDAARD_TEAMS = [
   { naam: 'Team Groen', kleur: '#2eb872', leden: [], beurt: 0 },
   { naam: 'Team Goud', kleur: '#f4c542', leden: [], beurt: 0 },
 ];
+
+// Testmodus via ?test zonder eerdere test: dan alvast testspelers.
+try {
+  if (Testmodus.aan && localStorage.getItem('kerst.test.teams') === null) {
+    localStorage.setItem('kerst.test.teams', JSON.stringify(STANDAARD_TEAMS.map((t, i) => ({ ...t, leden: ['Tester ' + 'ABC'[i]] }))));
+  }
+} catch (e) { /* geen opslag */ }
 
 const Teams = {
   lijst() {
@@ -130,7 +169,7 @@ const app = document.getElementById('app');
 // Toon een scherm. `acties` koppelt data-actie="naam" aan een functie.
 function toonScherm(html, acties = {}) {
   Spraak.stop();
-  app.innerHTML = html;
+  app.innerHTML = html + (Testmodus.aan ? '<div class="test-badge" aria-hidden="true">🧪 Test</div>' : '');
   app.querySelectorAll('[data-actie]').forEach(el => {
     const fn = acties[el.dataset.actie];
     if (fn) el.addEventListener('click', e => fn(e, el));

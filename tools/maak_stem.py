@@ -17,6 +17,7 @@ import pathlib
 import shutil
 import subprocess
 import tempfile
+import time
 
 from playwright.sync_api import sync_playwright
 
@@ -36,7 +37,12 @@ def teksten():
         pg.reload()
         lijst = pg.evaluate("alleVoorleesTeksten()")
         b.close()
-    return list(dict.fromkeys(lijst))
+    # Elke tekst wordt {tekst, stem, snelheid}; zonder eigen stem de standaardstem.
+    uniek = {}
+    for x in lijst:
+        x = {"tekst": x} if isinstance(x, str) else x
+        uniek.setdefault(x["tekst"], {"stem": STEM, "snelheid": SNELHEID, **x})
+    return list(uniek.values())
 
 
 def main():
@@ -45,23 +51,30 @@ def main():
         raise SystemExit("edge-tts niet gevonden. Installeer met: pip3 install edge-tts")
     STEMMAP.mkdir(parents=True, exist_ok=True)
     manifest = {}
-    for tekst in teksten():
-        sleutel = hashlib.sha1(f"{STEM}|{SNELHEID}|{TOONHOOGTE}|{tekst}".encode()).hexdigest()[:12]
+    for item in teksten():
+        tekst, stem, snelheid = item["tekst"], item["stem"], item["snelheid"]
+        sleutel = hashlib.sha1(f"{stem}|{snelheid}|{TOONHOOGTE}|{tekst}".encode()).hexdigest()[:12]
         pad = STEMMAP / f"{sleutel}.mp3"
         if not pad.exists():
             with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
                 f.write(tekst)
-            subprocess.run([tts, "--voice", STEM, f"--rate={SNELHEID}", f"--pitch={TOONHOOGTE}",
-                            "--file", f.name, "--write-media", str(pad)], check=True, capture_output=True)
+            for poging in range(4):  # de dienst weigert soms even; dan opnieuw
+                r = subprocess.run([tts, "--voice", stem, f"--rate={snelheid}", f"--pitch={TOONHOOGTE}",
+                                    "--file", f.name, "--write-media", str(pad)], capture_output=True, text=True)
+                if r.returncode == 0:
+                    break
+                time.sleep(5 * (poging + 1))
+            else:
+                raise SystemExit(f"Opname mislukt ({stem}): {tekst[:60]}\n{r.stderr[-500:]}")
             os.unlink(f.name)
-            print("nieuw:", tekst[:70])
+            print("nieuw:", stem, tekst[:60])
         manifest[tekst] = f"media/stem/{pad.name}"
     # Oude opnames opruimen.
     for oud in STEMMAP.glob("*.mp3"):
         if f"media/stem/{oud.name}" not in manifest.values():
             oud.unlink()
     (MAP / "data" / "stem.js").write_text(
-        "/* Voice-over (gemaakt door tools/maak_stem.py, niet met de hand aanpassen). Stem: " + STEM + " */\n"
+        "/* Voice-over (gemaakt door tools/maak_stem.py, niet met de hand aanpassen). Standaardstem: " + STEM + " */\n"
         "window.KERST_DATA = window.KERST_DATA || {};\n"
         "KERST_DATA.stem = " + json.dumps(manifest, ensure_ascii=False, indent=1) + ";\n")
     print(len(manifest), "opnames")
