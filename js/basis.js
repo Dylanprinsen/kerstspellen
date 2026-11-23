@@ -150,6 +150,11 @@ function kop(titel, terugActie = 'terug', terugTekst = '← Terug') {
   </div>`;
 }
 
+// Zet een punt achter een zin, tenzij die al op . ? of ! eindigt.
+function zin(t) {
+  return /[.?!]$/.test(t) ? t : t + '.';
+}
+
 function willekeurig(lijst) {
   return lijst[Math.floor(Math.random() * lijst.length)];
 }
@@ -179,25 +184,53 @@ function fotoHtml(naam, { emoji = '⭐', kleur = '#f1e4cf', klasse = '' } = {}) 
 
 /* ---------- Voorlezen ---------- */
 
+/*
+ * Voorlezen. Teksten waarvoor een opname bestaat (data/stem.js, gemaakt met
+ * tools/maak_stem.py) worden met die warme stem afgespeeld. Andere teksten
+ * (bijv. na het hernoemen van iets) leest het apparaat zelf voor.
+ */
 const Spraak = {
-  kan: 'speechSynthesis' in window,
-  stem() {
-    const stemmen = this.kan ? speechSynthesis.getVoices() : [];
+  kan: 'speechSynthesis' in window || 'Audio' in window,
+  audio: null,
+  // Tekst zoals hij voorgelezen wordt: zonder html en dubbele spaties. Zelfde regel als in tools/maak_stem.py.
+  schoon(tekst) {
+    return String(tekst).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  },
+  opname(tekst) {
+    return ((window.KERST_DATA || {}).stem || {})[this.schoon(tekst)] || null;
+  },
+  stemVanApparaat() {
+    const stemmen = 'speechSynthesis' in window ? speechSynthesis.getVoices() : [];
     return stemmen.find(s => s.lang === 'nl-NL') || stemmen.find(s => s.lang && s.lang.startsWith('nl')) || null;
   },
-  // Lees een tekst voor (html-tags worden weggelaten). klaar() wordt aangeroepen als het af is.
+  // Lees een tekst voor. klaar() wordt aangeroepen als het af is (ook bij een fout).
   zeg(tekst, klaar) {
-    if (!this.kan) { if (klaar) klaar(); return; }
-    const u = new SpeechSynthesisUtterance(String(tekst).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' '));
+    this.stop();
+    const gedaan = () => { if (klaar) { const k = klaar; klaar = null; k(); } };
+    const src = this.opname(tekst);
+    if (src) {
+      // Eén audio-element hergebruiken: op de iPad mag dat na de eerste tik steeds opnieuw spelen.
+      if (!this.audio) this.audio = new Audio();
+      this.audio.onended = gedaan;
+      this.audio.onerror = gedaan;
+      this.audio.src = src;
+      const p = this.audio.play();
+      if (p && p.catch) p.catch(gedaan);
+      return;
+    }
+    if (!('speechSynthesis' in window)) { gedaan(); return; }
+    const u = new SpeechSynthesisUtterance(this.schoon(tekst));
     u.lang = 'nl-NL';
-    const stem = this.stem();
+    const stem = this.stemVanApparaat();
     if (stem) u.voice = stem;
     u.rate = 0.95;
-    if (klaar) { u.onend = klaar; u.onerror = klaar; }
+    u.onend = gedaan;
+    u.onerror = gedaan;
     speechSynthesis.speak(u);
   },
   stop() {
-    if (this.kan) speechSynthesis.cancel();
+    if (this.audio) { this.audio.onended = null; this.audio.onerror = null; this.audio.pause(); }
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
   },
 };
 

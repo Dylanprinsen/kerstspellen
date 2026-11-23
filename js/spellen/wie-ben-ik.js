@@ -123,6 +123,7 @@
     naam: NAAM,
     emoji: '🤔',
     kort: 'iPad op je hoofd, je team geeft hints of beeldt uit. Hoeveel raad je in een minuut?',
+    film: 'Eén speler houdt de iPad op het voorhoofd en ziet niet wie erop staat. De rest van het team geeft hints. Hoeveel raden jullie er in één minuut?',
     instellingen: {
       set: {
         label: 'Welke kaartjes?',

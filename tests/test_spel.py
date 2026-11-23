@@ -9,7 +9,8 @@ OUT = sys.argv[1]
 fouten = []
 KIES = """(goed) => {
   const n = [...document.querySelectorAll('.persoon .naam')].map(e=>e.textContent);
-  const it = KERST_DATA.instagram.items;
+  const med = document.querySelector('.ronde-label').textContent.includes('🥇');
+  const it = med ? KERST_DATA.medailles.items : KERST_DATA.instagram.items;
   const l = it.find(i=>i.naam===n[0]).waarde, r = it.find(i=>i.naam===n[1]).waarde;
   if (r === l) return 'hoger';
   const juist = r > l ? 'hoger' : 'lager';
@@ -26,17 +27,25 @@ def schiet(pg, naam, heel=False):
     pg.screenshot(path=f"{OUT}/{naam}.png", full_page=heel)
 
 
-def hoger_lager(pg, team, aantal):
+def hoger_lager(pg, team, rondes):
+    """rondes: per ronde hoeveel goed (7 = doel gehaald, anders daarna één fout)."""
     klik(pg, f"[data-actie=kies][data-team='{team}']")
     klik(pg, "[data-actie=verder]")
-    for k in range(aantal):
-        if k == 1 and team == 1:
-            schiet(pg, "05_hl_vraag")
-        pg.click(f"[data-actie={pg.evaluate(KIES, True)}]")
-        pg.wait_for_timeout(2900 if k < aantal - 1 or aantal < 7 else 2400)
-    if aantal < 7:
-        pg.click(f"[data-actie={pg.evaluate(KIES, False)}]")
-        pg.wait_for_timeout(3300)
+    for r, aantal in enumerate(rondes):
+        for k in range(aantal):
+            if k == 1 and team == 1 and r == 0:
+                schiet(pg, "05_hl_vraag")
+            pg.click(f"[data-actie={pg.evaluate(KIES, True)}]")
+            pg.wait_for_timeout(2900 if k < aantal - 1 or aantal < 7 else 2400)
+        if aantal < 7:
+            pg.click(f"[data-actie={pg.evaluate(KIES, False)}]")
+            pg.wait_for_timeout(3300)
+        if r < len(rondes) - 1:
+            if team == 1:
+                schiet(pg, "05_hl_tussen")
+            klik(pg, "[data-actie=verder]")
+            if team == 1:
+                pg.wait_for_timeout(300); schiet(pg, "05_hl_medailles")
 
 
 def f1(pg, team, tikken):
@@ -104,12 +113,12 @@ with sync_playwright() as p:
     schiet(pg, "04_intro_hl")
     klik(pg, "[data-actie=verder]")
     schiet(pg, "04_teamkeuze")
-    hoger_lager(pg, 1, 2)
+    hoger_lager(pg, 1, [2, 0])
     schiet(pg, "06_hl_beurt_klaar")
     klik(pg, "[data-actie=verder]")
     schiet(pg, "07_teamkeuze_1_klaar")
-    hoger_lager(pg, 0, 7); klik(pg, "[data-actie=verder]")
-    hoger_lager(pg, 2, 0); klik(pg, "[data-actie=verder]")
+    hoger_lager(pg, 0, [7, 7]); klik(pg, "[data-actie=verder]")
+    hoger_lager(pg, 2, [0, 3]); klik(pg, "[data-actie=verder]")
     schiet(pg, "08_uitslag_hl", heel=True)
     print("na HL:", pg.evaluate(STAND))
     # Spel 2: F1 per team, 2 starts

@@ -17,11 +17,12 @@ Website met spelletjes voor Dylans familie met kerst. Los project: heeft niets m
 
 ## Verloop
 - Vaste volgorde: de spellen zijn alleen te bekijken, niet te kiezen. Per spel: uitleg → kies welk team de iPad heeft → beurt → doorgeven → na alle 3 teams uitslag + tussenstand → volgende spel → prijsuitreiking.
-- Startpagina: titel "Familie-editie 2026", uitlegfilmpje (`js/film.js`, geanimeerd met voorleesstem), programma met plaatjes, teams.
+- Startpagina: titel "Familie-editie 2026", uitlegfilmpje (`js/film.js`, geanimeerde scènes, ~1,5 min), programma met plaatjes, teams.
+- Voice-over: Dylan wil een warme stem, geen standaard robotstem. Opnames in `media/stem/` gemaakt met `tools/maak_stem.py` (edge-tts, stem nl-NL-FennaNeural). Na het wijzigen van een film- of uitlegtekst het script opnieuw draaien, anders valt die tekst terug op de robotstem van het apparaat.
 - Instellingen (categorie, doel, seconden, aantal starts) staan achter "Instellingen spelleider" onderaan de startpagina.
 
 ## Spellen
-- **Hoger of lager** (`js/spellen/hoger-lager.js`): Instagram-volgers (opgezocht 23 nov 2026) of Olympische medailles, met foto's. Per vraag kiest een ander teamlid. 1 punt per goed antwoord, +3 als het doel (standaard 7) gehaald wordt.
+- **Hoger of lager** (`js/spellen/hoger-lager.js`): per team twee rondes: eerst Instagram-volgers (opgezocht 23 nov 2026), dan Olympische medailles, met foto's. Per vraag kiest een ander teamlid. Per ronde 1 punt per goed antwoord, +3 als het doel (standaard 7) gehaald wordt.
 - **F1-startlichten** (`js/spellen/startlichten.js`): per team; het hele team tegelijk, ieder een eigen vak. Standaard 3 starts; gemiddelde reactietijd telt (valse start/te laat = 1 s). Na alle teams: 5/3/1 punten.
 - **Wie ben ik?** (`js/spellen/wie-ben-ik.js`): iPad op het voorhoofd; sets Sporters (met foto) en Sporten uitbeelden; 1 punt per goed.
 - **Binnenkort:** Sportquiz met een niveau per speler (makkelijk/gemiddeld/expert), Schatten. Staan in `BINNENKORT` in `js/app.js`.

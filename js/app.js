@@ -141,6 +141,18 @@ function programmaTegel(s, i, nu) {
 
 /* ---------- Uitleg van een spel ---------- */
 
+// Tekst die bij "Lees voor" wordt voorgelezen.
+function introTekst(i, inst) {
+  const s = Spellen[i];
+  return `Spel ${i + 1}: ${zin(s.naam)} ${s.stappen(inst).map(st => st.tekst).join(' ')} Punten: ${s.punten(inst)}`;
+}
+
+// Alle teksten met een vaste opname (voor tools/maak_stem.py): filmpje + uitleg per spel met standaardinstellingen.
+function alleVoorleesTeksten() {
+  const standaard = s => Object.fromEntries(Object.entries(s.instellingen || {}).map(([k, d]) => [k, d.standaard]));
+  return [...Film.teksten(), ...Spellen.map((s, i) => introTekst(i, standaard(s)))].map(t => Spraak.schoon(t));
+}
+
 function toonSpelIntro(i) {
   const s = Spellen[i];
   const inst = Instellingen.lees(s);
@@ -172,8 +184,7 @@ function toonSpelIntro(i) {
   `, {
     home: () => toonHome(),
     voorlezen: () => {
-      Spraak.stop();
-      Spraak.zeg(`Spel ${i + 1}: ${s.naam}. ${stappen.map(st => st.tekst).join(' ')} ${s.punten(inst)}`);
+      Spraak.zeg(introTekst(i, inst));
     },
     verder: () => toonTeamKeuze(i),
   });

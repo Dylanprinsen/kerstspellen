@@ -181,6 +181,7 @@
     naam: NAAM,
     emoji: '🏎️',
     kort: 'Lampen uit, tikken! Het hele team tegelijk. Welk team reageert het snelst?',
+    film: 'Vijf rode lampen gaan aan. Gaan ze uit? Tik dan zo snel als je kunt! Het hele team doet tegelijk mee. Welk team reageert het snelst?',
     instellingen: {
       starts: { label: 'Aantal starts per team', standaard: 3, min: 1, max: 5, stap: 1 },
     },
