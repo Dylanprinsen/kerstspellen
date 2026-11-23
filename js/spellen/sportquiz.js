@@ -1,13 +1,25 @@
 /*
  * Sportquiz
- * Elke speler van het team krijgt een paar meerkeuzevragen op een zelfgekozen niveau:
- * makkelijk (1 punt per goed), gemiddeld (2) of expert (3). Alleen wie aan de beurt is antwoordt.
+ * Elke speler van het team krijgt om de beurt een paar meerkeuzevragen, altijd in dezelfde
+ * mix: makkelijk (1 punt), gemiddeld (2), moeilijk (3), en dan weer van voren af aan.
+ * Niemand kiest zelf een niveau, dus elk team krijgt evenveel vragen van elke soort.
+ * Alleen wie aan de beurt is antwoordt.
  * Vragen komen uit data/sportquiz.js en worden op een avond niet herhaald.
  */
 (function () {
   const NAAM = 'Sportquiz';
   const NIVEAUS = window.KERST_DATA.sportquiz;
   const LETTERS = ['A', 'B', 'C', 'D'];
+  const VOLGORDE = ['makkelijk', 'gemiddeld', 'expert'];
+
+  function niveauVan(vraagNr) {
+    return VOLGORDE[vraagNr % VOLGORDE.length];
+  }
+
+  function mixTekst(aantal) {
+    const n = [...Array(aantal)].map((_, i) => NIVEAUS[niveauVan(i)].titel.toLowerCase());
+    return n.length > 1 ? n.slice(0, -1).join(', ') + ' en ' + n[n.length - 1] : n[0];
+  }
   let potje = null;
 
   function speelBeurt(beurt) {
@@ -18,39 +30,37 @@
       spel: NAAM,
       emoji: '❓',
       teamIndex: beurt.teamIndex,
-      uitleg: `${spelers.length > 1 ? `Iedereen (${spelers.map(esc).join(', ')})` : 'Jullie'} krijgt <b>${potje.perSpeler} vragen</b> op een zelfgekozen niveau.<br>
+      uitleg: `${spelers.length > 1 ? `Iedereen (${spelers.map(esc).join(', ')})` : 'Jullie'} krijgt om de beurt <b>${potje.perSpeler} vragen</b>: ${mixTekst(potje.perSpeler)}.<br>
         Alleen wie aan de beurt is mag antwoorden. Niet voorzeggen!`,
       knop: 'Begin de quiz ❓',
-      verder: () => kiesNiveau(),
+      verder: () => toonSpeler(),
       terug: () => beurt.stop(),
     });
   }
 
-  /* ---------- Niveau kiezen ---------- */
+  /* ---------- Wie is aan de beurt? ---------- */
 
-  function kiesNiveau() {
+  function toonSpeler() {
     const speler = potje.spelers[potje.s];
     toonScherm(`
       ${spelkop()}
       <div class="midden schuif-in">
-        <p class="niveau-wie">🎯 Aan de beurt: <b>${esc(speler)}</b></p>
-        <h2>Welk niveau kies je?</h2>
-        <p>Moeilijker = meer punten per goed antwoord. Fout is altijd 0.</p>
-        <div class="niveaus">
-          ${Object.entries(NIVEAUS).map(([id, n]) => `
-            <button class="niveau niveau-${id}" data-actie="niveau" data-id="${id}">
-              <span class="niveau-emoji">${n.emoji}</span>
-              <b>${esc(n.titel)}</b>
-              <span class="niveau-punten">${n.punten} ${n.punten === 1 ? 'punt' : 'punten'}</span>
-              <small>per goed antwoord</small>
-            </button>`).join('')}
+        <div class="groot-emoji klein">🎯</div>
+        <p>Aan de beurt:</p>
+        <h2>${esc(speler)}</h2>
+        <p>Jij krijgt ${potje.perSpeler} ${potje.perSpeler === 1 ? 'vraag' : 'vragen'}. Alleen jij mag antwoorden!</p>
+        <div class="niveau-rij">
+          ${[...Array(potje.perSpeler)].map((_, i) => {
+            const n = NIVEAUS[niveauVan(i)];
+            return `<span class="niveau-chip niveau-${niveauVan(i)}">${n.emoji} ${esc(n.titel)} · ${n.punten} ${n.punten === 1 ? 'punt' : 'punten'}</span>`;
+          }).join('')}
         </div>
+        <div class="knoppen"><button class="knop goud groot" data-actie="start">Ik ben er klaar voor ▶️</button></div>
       </div>
     `, {
       stop: () => stoppen(),
-      niveau: (e, el) => {
-        potje.niveau = el.dataset.id;
-        potje.uitslag.push({ speler, niveau: el.dataset.id, goed: 0, punten: 0 });
+      start: () => {
+        potje.uitslag.push({ speler, goed: 0, punten: 0 });
         potje.vraagNr = 0;
         toonVraag();
       },
@@ -88,15 +98,17 @@
   }
 
   function toonVraag() {
+    potje.niveau = niveauVan(potje.vraagNr);
     const n = NIVEAUS[potje.niveau];
     const speler = potje.spelers[potje.s];
     const q = pakVraag(potje.niveau);
     potje.vraag = q;
     potje.beantwoord = false;
     toonScherm(`
-      ${spelkop(`· <b>${esc(speler)}</b> <span class="ronde-label">${n.emoji} ${esc(n.titel)}</span>`)}
+      ${spelkop(`· <b>${esc(speler)}</b>`)}
       <div class="quiz schuif-in">
-        <div class="quiz-teller">Vraag ${potje.vraagNr + 1} van ${potje.perSpeler}</div>
+        <div class="quiz-teller">Vraag ${potje.vraagNr + 1} van ${potje.perSpeler}
+          <span class="niveau-chip niveau-${potje.niveau}">${n.emoji} ${esc(n.titel)} · ${n.punten} ${n.punten === 1 ? 'punt' : 'punten'}</span></div>
         ${potje.seconden ? '<div class="quiz-tijd"><i id="quiz-tijd"></i></div>' : ''}
         <div class="quiz-vraag">${esc(q.v)}</div>
         <div class="quiz-antwoorden">
@@ -156,7 +168,7 @@
     if (goed) confettiKlein();
     document.getElementById('quiz-verder').addEventListener('click', () => {
       if (!laatsteVraag) toonVraag();
-      else if (!laatsteSpeler) { potje.s += 1; kiesNiveau(); }
+      else if (!laatsteSpeler) { potje.s += 1; toonSpeler(); }
       else einde();
     });
   }
@@ -177,7 +189,7 @@
       titel: `${goed} van de ${totaal} goed!`,
       emoji: goed === totaal ? '🧠' : goed >= totaal / 2 ? '👏' : '🎅',
       details: `<ul class="tijden-lijst">
-        ${u.map(x => `<li><span>${NIVEAUS[x.niveau].emoji} ${esc(x.speler)}</span><b>${x.goed}/${potje.perSpeler} goed = ${x.punten} ${x.punten === 1 ? 'punt' : 'punten'}</b></li>`).join('')}
+        ${u.map(x => `<li><span>🎯 ${esc(x.speler)}</span><b>${x.goed}/${potje.perSpeler} goed = ${x.punten} ${x.punten === 1 ? 'punt' : 'punten'}</b></li>`).join('')}
       </ul>`,
       feest: goed === totaal,
     });
@@ -188,19 +200,19 @@
     naam: NAAM,
     emoji: '❓',
     minuten: 12,
-    kort: 'Meerkeuzevragen over sport. Iedereen kiest zelf: makkelijk, gemiddeld of expert.',
-    film: 'Iedereen krijgt sportvragen op een zelfgekozen niveau: makkelijk, gemiddeld of expert. Hoe moeilijker, hoe meer punten. Durf jij expert?',
+    kort: 'Meerkeuzevragen over sport. Iedereen krijgt een makkelijke, een gemiddelde en een moeilijke vraag.',
+    film: 'Iedereen krijgt om de beurt sportvragen: een makkelijke, een gemiddelde en een moeilijke. Hoe moeilijker de vraag, hoe meer punten. Alleen wie aan de beurt is mag antwoorden!',
     instellingen: {
       vragen: { label: 'Vragen per speler', standaard: 3, min: 1, max: 6, stap: 1 },
       seconden: { label: 'Seconden per vraag (0 = geen klok)', standaard: 30, min: 0, max: 60, stap: 10, eenheid: 'sec' },
     },
     stappen: inst => [
       { icoon: '🎯', tekst: `Iedereen uit het team krijgt om de beurt <b>${inst.vragen} ${inst.vragen === 1 ? 'vraag' : 'vragen'}</b>.` },
-      { icoon: '🟢🟡🔴', tekst: 'Kies vooraf je niveau: <b>makkelijk</b>, <b>gemiddeld</b> of <b>expert</b>.' },
+      { icoon: '🟢🟡🔴', tekst: `Altijd dezelfde mix: ${mixTekst(inst.vragen)}. Bij elke vraag zie je hoe moeilijk hij is.` },
       { icoon: '🤫', tekst: 'Alleen wie aan de beurt is mag antwoorden. Niet voorzeggen!' },
       { icoon: '⏱️', tekst: inst.seconden ? `Je hebt <b>${inst.seconden} seconden</b> per vraag. Tik op A, B, C of D.` : 'Neem de tijd en tik op A, B, C of D.' },
     ],
-    punten: () => 'Per goed antwoord: makkelijk <b>1 punt</b>, gemiddeld <b>2 punten</b>, expert <b>3 punten</b>. Fout is 0.',
+    punten: () => 'Per goed antwoord: makkelijke vraag <b>1 punt</b>, gemiddelde vraag <b>2 punten</b>, moeilijke vraag <b>3 punten</b>. Fout is 0.',
     plaatje: () => `
       <div class="plaat plaat-quiz">
         <div class="quiz-mini">

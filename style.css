@@ -784,22 +784,9 @@ img { display: block; }
 .duur { font-size: 14px; font-weight: 500; color: #6b5a44; }
 
 /* ---------- Sportquiz ---------- */
-.niveau-wie { font-size: 26px !important; opacity: 1 !important; }
-.niveaus { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; max-width: 860px; margin-top: 8px; }
-.niveau {
-  font: inherit; border: 0; border-radius: 24px; padding: 22px 12px; cursor: pointer; color: var(--kaart-tekst); background: var(--kaart);
-  display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: var(--schaduw); border-top: 12px solid var(--n);
-  transition: transform .1s;
-}
-.niveau:active { transform: scale(.96); }
 .niveau-makkelijk { --n: #2eb872; }
 .niveau-gemiddeld { --n: #f4c542; }
 .niveau-expert { --n: #e5484d; }
-.niveau-emoji { font-size: 44px; }
-.niveau b { font-size: 26px; }
-.niveau-punten { font-size: 30px; font-weight: 700; color: var(--n); filter: brightness(.85); }
-.niveau small { opacity: .65; font-size: 15px; }
-@media (max-width: 640px) { .niveaus { grid-template-columns: 1fr; } .niveau { flex-direction: row; justify-content: center; gap: 12px; padding: 14px; } .niveau small { display: none; } }
 
 .quiz-voortgang { font-size: 17px; opacity: .8; }
 .quiz { display: flex; flex-direction: column; gap: 14px; flex: 1; }
@@ -899,3 +886,10 @@ img { display: block; }
 }
 .schat-mini-getal span { display: inline-block; animation: puls 1.6s ease-in-out infinite; }
 .schat-mini-doel { position: absolute; right: 10%; bottom: 12%; font-size: clamp(30px, 6vw, 54px); animation: stuiter 2s ease-in-out infinite; }
+
+.niveau-rij { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.niveau-chip {
+  display: inline-block; font-size: 16px; font-weight: 600; padding: 4px 12px; border-radius: 999px; margin-left: 6px;
+  background: color-mix(in srgb, var(--n) 30%, transparent); border: 2px solid var(--n); color: #fff; vertical-align: 1px;
+}
+.niveau-rij .niveau-chip { font-size: 18px; padding: 6px 16px; margin: 0; }

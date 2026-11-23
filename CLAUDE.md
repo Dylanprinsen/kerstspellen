@@ -25,7 +25,7 @@ Website met spelletjes voor Dylans familie met kerst. Los project: heeft niets m
 ## Spellen
 - **Hoger of lager** (`js/spellen/hoger-lager.js`): per team twee rondes: eerst Instagram-volgers (opgezocht 23 nov 2026), dan Olympische medailles, met foto's. Per vraag kiest een ander teamlid. Per ronde 1 punt per goed antwoord, +3 als het doel (standaard 7) gehaald wordt.
 - **F1-startlichten** (`js/spellen/startlichten.js`): per team; het hele team tegelijk, ieder een eigen vak. Standaard 3 starts; gemiddelde reactietijd telt (valse start/te laat = 1 s). Na alle teams: 5/3/1 punten.
-- **Sportquiz** (`js/spellen/sportquiz.js`, vragen in `data/sportquiz.js`): elke speler kiest een niveau, makkelijk/gemiddeld/expert = 1/2/3 punten per goed. Standaard 3 vragen per speler, 30 seconden per vraag. Vragen worden op een avond niet herhaald.
+- **Sportquiz** (`js/spellen/sportquiz.js`, vragen in `data/sportquiz.js`): geen niveaukeuze (Dylan wil dat niet): elke speler krijgt een vaste mix makkelijk → gemiddeld → moeilijk = 1/2/3 punten per goed. Standaard 3 vragen per speler, 30 seconden per vraag. Vragen worden op een avond niet herhaald.
 - **Wie ben ik?** (`js/spellen/wie-ben-ik.js`): iPad op het voorhoofd; per team twee rondes van 60 s (Sporters met foto, dan Sporten uitbeelden), elke ronde raadt iemand anders; 1 punt per goed.
 - **Schatten** (`js/spellen/schatten.js`, vragen in `data/schatten.js`): alle teams dezelfde 8 vragen, geheim invullen; na het laatste team een onthulling per vraag. Dichtstbij 2, tweede 1, binnen 1% +1 bonus.
 - Volgorde: Hoger of lager → F1 → Sportquiz → Wie ben ik? → Schatten → prijsuitreiking. `BINNENKORT` in `js/app.js` is nu leeg.

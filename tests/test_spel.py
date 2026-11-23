@@ -12,7 +12,7 @@ KIES = """(goed) => {
   const med = document.querySelector('.ronde-label').textContent.includes('🥇');
   const it = med ? KERST_DATA.medailles.items : KERST_DATA.instagram.items;
   const l = it.find(i=>i.naam===n[0]).waarde, r = it.find(i=>i.naam===n[1]).waarde;
-  if (r === l) return 'hoger';
+  if (r === l) return goed ? 'hoger' : 'gelijk';  // gelijk telt altijd als goed
   const juist = r > l ? 'hoger' : 'lager';
   return goed ? juist : (juist === 'hoger' ? 'lager' : 'hoger'); }"""
 STAND = "JSON.stringify([0,1,2].map(i => Stand.totaal(i)))"
@@ -44,6 +44,9 @@ def hoger_lager(pg, team, rondes):
             pg.click(f"[data-actie={pg.evaluate(KIES, True)}]")
             pg.wait_for_timeout(2900 if k < aantal - 1 or aantal < 7 else 2400)
         if aantal < 7:
+            # Bewust fout antwoorden; bij precies evenveel kan dat niet, dan eerst door.
+            while pg.evaluate(KIES, False) == 'gelijk':
+                pg.click("[data-actie=hoger]"); pg.wait_for_timeout(2900)
             pg.click(f"[data-actie={pg.evaluate(KIES, False)}]")
             pg.wait_for_timeout(3300)
         if r < len(rondes) - 1:
@@ -96,13 +99,13 @@ def wie_ben_ik(pg, team, rondes, foto=False):
 
 
 def quiz(pg, team, plan, foto=False):
-    """plan: per speler (niveau, [goed?, goed?, ...])."""
+    """plan: per speler een lijst goed/fout (vragen: makkelijk, gemiddeld, ...)."""
     klik(pg, f"[data-actie=kies][data-team='{team}']")
     klik(pg, "[data-actie=verder]")
-    for s, (niveau, antwoorden) in enumerate(plan):
+    for s, antwoorden in enumerate(plan):
         if foto and s == 0:
-            schiet(pg, "13_quiz_niveau")
-        klik(pg, f"[data-actie=niveau][data-id={niveau}]")
+            schiet(pg, "13_quiz_speler")
+        klik(pg, "[data-actie=start]")
         for k, goed in enumerate(antwoorden):
             if foto and s == 0 and k == 0:
                 schiet(pg, "13_quiz_vraag")
@@ -178,10 +181,11 @@ with sync_playwright() as p:
     # Spel 3: Sportquiz (2 vragen per speler)
     klik(pg, "[data-actie=verder]"); schiet(pg, "12_intro_quiz")
     klik(pg, "[data-actie=verder]")
-    quiz(pg, 0, [("makkelijk", [True, True]), ("gemiddeld", [True, False]), ("expert", [False, False])], foto=True)
+    # 2 vragen per speler = makkelijk (1) + gemiddeld (2). Verwacht: 1+2+1 = 4, 3x3 = 9, 0.
+    quiz(pg, 0, [[True, True], [True, False], [False, False]], foto=True)
     schiet(pg, "13_quiz_klaar"); klik(pg, "[data-actie=verder]")
-    quiz(pg, 1, [("expert", [True, True])] * 3); klik(pg, "[data-actie=verder]")
-    quiz(pg, 2, [("makkelijk", [False, False])] * 3); klik(pg, "[data-actie=verder]")
+    quiz(pg, 1, [[True, True]] * 3); klik(pg, "[data-actie=verder]")
+    quiz(pg, 2, [[False, False]] * 3); klik(pg, "[data-actie=verder]")
     schiet(pg, "13_uitslag_quiz", heel=True)
     print("na quiz:", pg.evaluate(STAND))
     # Spel 4: Wie ben ik? (2 rondes van 30 seconden)

@@ -1,5 +1,6 @@
 /*
- * Vragen voor de Sportquiz, per niveau. Het eerste antwoord is het goede
+ * Vragen voor de Sportquiz, per moeilijkheid. Elke speler krijgt ze om de beurt
+ * in de mix makkelijk, gemiddeld, moeilijk. Het eerste antwoord is het goede
  * (de app husselt de volgorde). `u` is een korte uitleg na het antwoord.
  * Alleen feiten die vaststaan: geen "huidige kampioen" e.d. die kunnen veranderen.
  */
@@ -77,7 +78,7 @@ KERST_DATA.sportquiz = {
     ],
   },
   expert: {
-    titel: 'Expert', emoji: '🔴', punten: 3,
+    titel: 'Moeilijk', emoji: '🔴', punten: 3,
     vragen: [
       { v: 'Hoeveel ballen liggen er aan het begin van een frame snooker op tafel, de witte meegerekend?', a: ['22', '16', '21', '15'], u: '15 rode, 6 gekleurde en de witte.' },
       { v: 'Hoeveel minuten duurt één kwart in de NBA?', a: ['12', '10', '15', '20'] },
